@@ -25,6 +25,14 @@ python -m uvicorn dueflow.main:app --reload
 
 O comando `create-admin` solicita e confirma a senha sem exibi-la. A API fica disponível em `http://localhost:8000` e o health check em `http://localhost:8000/health`.
 
+Para redefinir uma senha local:
+
+```powershell
+python -m dueflow.cli reset-password --email admin@example.com
+```
+
+A troca revoga todas as sessões abertas desse usuário.
+
 ## Autenticação
 
 Somente `/health`, `/auth/login` e `/auth/refresh` são públicos. As demais rotas exigem `Authorization: Bearer <access_token>`.
@@ -45,6 +53,33 @@ python -m dueflow.worker
 ```
 
 O worker consulta a fila no banco a cada dois segundos. Ele executa o PolicyFlow, renderiza a mensagem e usa o provider configurado. O padrão é `MESSAGE_PROVIDER=fake`, que não acessa a rede.
+
+## Frontend local
+
+Requisitos:
+
+- Node.js 22;
+- API disponível em `http://localhost:8000`;
+- usuário administrativo criado no backend.
+
+Em outro terminal:
+
+```powershell
+Set-Location frontend
+Copy-Item .env.example .env
+npm.cmd install
+npm.cmd run dev
+```
+
+O painel fica disponível em `http://localhost:5173`. A fundação inclui login, restauração da sessão por refresh token, renovação coordenada após `401`, rotas privadas, shell responsivo e componentes visuais reutilizáveis.
+
+Para validar o frontend:
+
+```powershell
+npm.cmd run lint
+npm.cmd run test
+npm.cmd run build
+```
 
 Para executar os testes:
 

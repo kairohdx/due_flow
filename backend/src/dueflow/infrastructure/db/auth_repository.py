@@ -1,6 +1,7 @@
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from dueflow.infrastructure.db.models import RefreshSession, User
@@ -30,6 +31,26 @@ class AuthRepository:
         self.session.commit()
         self.session.refresh(refresh_session)
         return refresh_session
+
+    def update_password_and_revoke_sessions(
+        self,
+        user: User,
+        *,
+        password_hash: str,
+        revoked_at: datetime,
+    ) -> User:
+        user.password_hash = password_hash
+        self.session.execute(
+            update(RefreshSession)
+            .where(
+                RefreshSession.user_id == user.id,
+                RefreshSession.revoked_at.is_(None),
+            )
+            .values(revoked_at=revoked_at, last_used_at=revoked_at)
+        )
+        self.session.commit()
+        self.session.refresh(user)
+        return user
 
     def rotate_refresh_session(
         self,
