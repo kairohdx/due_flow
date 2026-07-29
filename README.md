@@ -2,7 +2,7 @@
 
 Aplicação web para cadastrar cobranças, decidir lembretes com o PolicyFlow e enviar mensagens pelo WhatsApp em modo fake ou pela API oficial da Meta.
 
-O projeto está em construção. A documentação de escopo está em [`temp_file.md`](temp_file.md), e as decisões técnicas ficam em [`docs/decisoes`](docs/decisoes).
+O projeto está em construção. A documentação de escopo está em [`docs/plano-mvp.md`](docs/plano-mvp.md), e as decisões técnicas ficam em [`docs/decisoes`](docs/decisoes).
 
 ## Backend local
 
@@ -19,10 +19,24 @@ python -m venv .venv
 python -m pip install -e "./backend[dev]"
 Copy-Item .env.example .env
 python -m alembic -c backend/alembic.ini upgrade head
+python -m dueflow.cli create-admin --email admin@example.com --name "Administrador"
 python -m uvicorn dueflow.main:app --reload
 ```
 
-A API fica disponível em `http://localhost:8000` e o health check em `http://localhost:8000/health`.
+O comando `create-admin` solicita e confirma a senha sem exibi-la. A API fica disponível em `http://localhost:8000` e o health check em `http://localhost:8000/health`.
+
+## Autenticação
+
+Somente `/health`, `/auth/login` e `/auth/refresh` são públicos. As demais rotas exigem `Authorization: Bearer <access_token>`.
+
+```text
+POST /auth/login
+POST /auth/refresh
+POST /auth/logout
+GET  /auth/me
+```
+
+O access token dura 15 minutos por padrão. O refresh token fica em cookie `HttpOnly`, é rotacionado a cada renovação e revogado no logout. Em produção, a aplicação recusa o segredo de desenvolvimento e exige `AUTH_COOKIE_SECURE=true`.
 
 Em outro terminal, com o mesmo ambiente ativado, inicie o worker:
 

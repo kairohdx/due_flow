@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from dueflow import __version__
 from dueflow.api.errors import register_error_handlers
+from dueflow.api.auth_dependencies import get_current_user
+from dueflow.api.routes.auth import router as auth_router
 from dueflow.api.routes.automation import router as automation_router
 from dueflow.api.routes.charges import router as charges_router
 from dueflow.api.routes.customers import router as customers_router
@@ -35,17 +37,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=app_settings.cors_origins,
-        allow_credentials=False,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
     register_error_handlers(app)
     app.include_router(health_router)
-    app.include_router(customers_router)
-    app.include_router(charges_router)
-    app.include_router(processing_router)
-    app.include_router(notifications_router)
-    app.include_router(automation_router)
+    app.include_router(auth_router)
+    protected = [Depends(get_current_user)]
+    app.include_router(customers_router, dependencies=protected)
+    app.include_router(charges_router, dependencies=protected)
+    app.include_router(processing_router, dependencies=protected)
+    app.include_router(notifications_router, dependencies=protected)
+    app.include_router(automation_router, dependencies=protected)
     return app
 
 

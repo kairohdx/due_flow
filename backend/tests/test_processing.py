@@ -3,10 +3,12 @@ from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
+from dueflow.application.auth import AuthService
 from dueflow.application.worker import Worker
 from dueflow.application.whatsapp import WhatsAppProvider
 from dueflow.config import Settings
 from dueflow.infrastructure.db.database import Database
+from dueflow.infrastructure.db.auth_repository import AuthRepository
 from dueflow.infrastructure.db.job_queue import DatabaseJobQueue
 from dueflow.infrastructure.messaging.fake import FakeWhatsAppProvider
 from dueflow.main import create_app
@@ -226,13 +228,31 @@ def test_reference_date_is_rejected_in_production(
     settings = Settings(
         app_env="production",
         database_url=f"sqlite:///{database_path.as_posix()}",
+        jwt_secret="production-secret-with-at-least-thirty-two-characters",
+        auth_cookie_secure=True,
         _env_file=None,
     )
     app = create_app(settings)
     from dueflow.infrastructure.db.base import Base
 
     Base.metadata.create_all(app.state.database.engine)
+    with app.state.database.session() as session:
+        AuthService(AuthRepository(session), settings).create_user(
+            email="production@example.com",
+            name="Produção",
+            password="production-password-123",
+        )
     with TestClient(app) as production_client:
+        login = production_client.post(
+            "/auth/login",
+            json={
+                "email": "production@example.com",
+                "password": "production-password-123",
+            },
+        )
+        production_client.headers["Authorization"] = (
+            f"Bearer {login.json()['access_token']}"
+        )
         response = production_client.post(
             "/processing/run",
             json={"reference_date": "2026-07-29"},
