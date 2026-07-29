@@ -348,6 +348,9 @@ tbody tr:hover { background: #fbfcfe; }
 .notification-delivery.delivery-sent, .notification-delivery.delivery-delivered, .notification-delivery.delivery-read { color: #08715a; background: #effaf6; border-color: #ceeade; }
 .notification-delivery.delivery-failed { color: #ad3040; background: #fff2f4; border-color: #f0d0d5; }
 
+.message-timeline {
+  padding: 1.5rem;
+}
 .message-timeline ol {
   display: grid;
   gap: 0;
@@ -357,7 +360,7 @@ tbody tr:hover { background: #fbfcfe; }
 }
 .message-timeline li {
   display: grid;
-  grid-template-columns: 2.25rem 1fr;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
   gap: .8rem;
   min-height: 4.5rem;
   position: relative;
@@ -381,8 +384,9 @@ tbody tr:hover { background: #fbfcfe; }
   justify-content: center;
   width: 2.25rem;
 }
-.message-timeline li > div { display: grid; gap: .25rem; padding: .2rem 0 1.1rem; }
-.message-timeline li small { color: var(--muted); }
+.message-timeline li > div { display: grid; gap: .25rem; min-width: 0; padding: .2rem 0 1.1rem; }
+.message-timeline li strong, .message-timeline li small { overflow-wrap: anywhere; }
+.message-timeline li small { color: var(--muted); line-height: 1.55; }
 .message-timeline .timeline-success > span { background: #e4f7f2; color: #16866f; }
 .message-timeline .timeline-pending > span { background: #fff3db; color: #a66a00; }
 .message-timeline .timeline-error > span { background: #fff0f2; color: #ad3040; }
@@ -393,12 +397,22 @@ tbody tr:hover { background: #fbfcfe; }
 .error-technical-details p { color: var(--muted); margin: .5rem 0 0; }
 .recovery-card {
   align-items: center;
-  display: flex;
-  gap: 1.25rem;
-  justify-content: space-between;
+  display: grid;
+  gap: 1rem 2rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 1.5rem;
 }
+.recovery-card > div:first-child { min-width: 0; }
 .recovery-card h2 { margin: .25rem 0; }
-.recovery-card p { color: var(--muted); margin: 0; max-width: 760px; }
+.recovery-card p { color: var(--muted); line-height: 1.6; margin: 0; max-width: 760px; overflow-wrap: anywhere; }
+.recovery-actions {
+  align-items: flex-end;
+  display: grid;
+  gap: .65rem;
+  justify-items: end;
+}
+.recovery-actions .button { white-space: nowrap; }
+.recovery-card > .inline-error { grid-column: 1 / -1; margin: 0; width: 100%; }
 .recovery-template { border-color: #edcf96; background: #fffaf0; }
 .attempt-family-list { display: grid; gap: .65rem; }
 .attempt-family-list a {
@@ -414,7 +428,11 @@ tbody tr:hover { background: #fbfcfe; }
 }
 .attempt-family-list small { color: var(--muted); }
 @media (max-width: 700px) {
-  .recovery-card { align-items: stretch; flex-direction: column; }
+  .message-timeline, .recovery-card { padding: 1.1rem; }
+  .recovery-card { align-items: stretch; grid-template-columns: 1fr; }
+  .recovery-actions { align-items: stretch; justify-items: stretch; }
+  .recovery-actions .button { justify-content: center; width: 100%; }
+  .recovery-card > .inline-error { grid-column: 1; }
   .attempt-family-list a { grid-template-columns: 1fr auto; }
 }
 .notification-metrics {

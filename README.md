@@ -354,7 +354,9 @@ O template esperado possui quatro parâmetros de corpo, nesta ordem:
 O modo fake gera o mesmo payload de template, marca a tentativa como simulada e
 percorre o fluxo assíncrono de entrega. Nome, idioma, parâmetros e conteúdo
 renderizado ficam disponíveis no detalhe da mensagem mesmo quando a submissão
-falha. O envio real permanece pendente até a aprovação do template configurado.
+falha. O envio real de texto livre foi validado localmente e no Render em
+29/07/2026, incluindo o recebimento no celular e os eventos do webhook. Permanece
+pendente somente a validação externa do template configurado.
 
 ### Webhook de entrega
 
@@ -413,3 +415,27 @@ A resposta informa clientes cadastrados, cobranças pendentes, vencidas, vencend
 ## Idioma da documentação
 
 Os documentos Markdown do repositório são escritos em português do Brasil. Nomes de código e termos definidos por bibliotecas permanecem em inglês quando isso torna a implementação mais clara.
+
+## Deploy da demonstração
+
+O repositório inclui uma imagem única com frontend, API e worker, um
+`compose.yaml` para execução local e um Blueprint do Render. O banco recomendado
+para a demonstração é o PostgreSQL gratuito do Neon.
+
+O passo a passo completo está em
+[Deploy gratuito no Render com Neon](docs/deploy-render-neon.md).
+
+Resumo:
+
+1. crie o projeto `dueflow-demo` no Neon;
+2. copie a connection string;
+3. envie o repositório ao GitHub;
+4. escolha **New > Blueprint** no Render;
+5. preencha `DATABASE_URL` e `INITIAL_ADMIN_EMAIL`;
+6. adicione `INITIAL_ADMIN_PASSWORD` diretamente no Environment do serviço,
+   sem registrar a credencial no Blueprint;
+7. acesse a URL gerada e ative a automação.
+
+O serviço aplica a baseline do Alembic, cria o administrador e carrega três
+cobranças idempotentes para a demonstração. Nenhum segredo deve ser enviado ao
+Git.

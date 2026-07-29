@@ -230,25 +230,38 @@ export function NotificationDetailPage() {
                   : `Motivo técnico: ${retryFlow.recovery.data.reason}.`}
             </p>
           </div>
-          {retryFlow.recovery.data.eligible ? (
-            <Button
-              icon={<Icon name="refresh" />}
-              loading={retryFlow.retry.isPending || Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)}
-              onClick={() => retryFlow.retry.mutate()}
-            >
-              Tentar novamente
-            </Button>
-          ) : retryFlow.recovery.data.template_eligible ? (
-            <Button
-              icon={<Icon name="message" />}
-              loading={
-                retryFlow.retryTemplate.isPending ||
-                Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)
-              }
-              onClick={() => retryFlow.retryTemplate.mutate()}
-            >
-              Reenviar com template
-            </Button>
+          {retryFlow.recovery.data.eligible ||
+          retryFlow.recovery.data.template_eligible ||
+          retryFlow.job.data?.terminal ? (
+            <div className="recovery-actions">
+              {retryFlow.recovery.data.eligible ? (
+                <Button
+                  icon={<Icon name="refresh" />}
+                  loading={retryFlow.retry.isPending || Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)}
+                  onClick={() => retryFlow.retry.mutate()}
+                >
+                  Tentar novamente
+                </Button>
+              ) : retryFlow.recovery.data.template_eligible ? (
+                <Button
+                  icon={<Icon name="message" />}
+                  loading={
+                    retryFlow.retryTemplate.isPending ||
+                    Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)
+                  }
+                  onClick={() => retryFlow.retryTemplate.mutate()}
+                >
+                  Reenviar com template
+                </Button>
+              ) : null}
+              {retryFlow.job.data?.terminal ? (
+                <StatusBadge tone={retryFlow.job.data.result?.retried ? "success" : "warning"}>
+                  {retryFlow.job.data.result?.retried
+                    ? "Nova tentativa criada"
+                    : "Retentativa cancelada"}
+                </StatusBadge>
+              ) : null}
+            </div>
           ) : null}
           {retryFlow.retry.error || retryFlow.retryTemplate.error ? (
             <div className="inline-error" role="alert">
@@ -256,13 +269,6 @@ export function NotificationDetailPage() {
                 retryFlow.retry.error ?? retryFlow.retryTemplate.error,
               )}
             </div>
-          ) : null}
-          {retryFlow.job.data?.terminal ? (
-            <StatusBadge tone={retryFlow.job.data.result?.retried ? "success" : "warning"}>
-              {retryFlow.job.data.result?.retried
-                ? "Nova tentativa criada"
-                : "Retentativa cancelada"}
-            </StatusBadge>
           ) : null}
         </section>
       ) : null}

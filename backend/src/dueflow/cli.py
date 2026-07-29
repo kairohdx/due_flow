@@ -1,4 +1,5 @@
 import argparse
+from datetime import date
 from getpass import getpass
 
 from dueflow.application.auth import (
@@ -14,6 +15,7 @@ from dueflow.infrastructure.messaging.meta import (
     MetaWhatsAppProvider,
     mask_phone,
 )
+from dueflow.application.demo_seed import seed_demo
 
 
 def create_admin(email: str, name: str, password: str | None = None) -> None:
@@ -81,6 +83,21 @@ def test_meta(to: str, message: str) -> None:
     )
 
 
+def run_demo_seed(reference_date: date) -> None:
+    settings = get_settings()
+    database = Database(settings.database_url)
+    try:
+        with database.session() as session:
+            result = seed_demo(session, reference_date=reference_date)
+        print(
+            "Seed aplicado: "
+            f"clientes={result.customers_created} "
+            f"cobranças={result.charges_created}"
+        )
+    finally:
+        database.dispose()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="dueflow")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -104,6 +121,15 @@ def main() -> None:
         "--message",
         default="Teste de integração do DueFlow.",
     )
+    seed_parser = commands.add_parser(
+        "seed-demo",
+        help="cria dados determinísticos para a demonstração",
+    )
+    seed_parser.add_argument(
+        "--reference-date",
+        type=date.fromisoformat,
+        default=date.today(),
+    )
     args = parser.parse_args()
 
     if args.command == "create-admin":
@@ -121,6 +147,8 @@ def main() -> None:
             test_meta(args.to, args.message)
         except (MetaWhatsAppError, ValueError) as exc:
             parser.error(str(exc))
+    elif args.command == "seed-demo":
+        run_demo_seed(args.reference_date)
 
 
 if __name__ == "__main__":
