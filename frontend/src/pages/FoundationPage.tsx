@@ -31,7 +31,7 @@ const content: Record<
   },
   jobs: {
     eyebrow: "Automação auditável",
-    title: "Fila de jobs",
+    title: "Execuções da automação",
     description:
       "Acompanhamento ao vivo e inspeção do turno chegam na Etapa 7.7.",
     icon: "activity",

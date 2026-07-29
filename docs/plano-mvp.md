@@ -657,14 +657,15 @@ Cada etapa termina com uma verificação executável.
 
 **Pronto quando:** a aplicação abre no login, mantém o usuário conectado com segurança e navega pelo shell autenticado. Validado em 29/07/2026 com lint, 5 testes de frontend e build de produção; o shell responsivo e a identidade visual própria do DueFlow estão preparados para as telas funcionais.
 
-#### Etapa 7.4 — Dashboard operacional — concluída
+#### Etapa 7.4 — Visão geral do negócio — concluída
 
-- [x] criar cartões para clientes, cobranças pendentes, avaliadas em 24 horas, mensagens processadas, retries e falhas de notificação;
-- [x] exibir estado da automação e ações habilitar, pausar e processar agora;
-- [x] mostrar atividade recente, instante da última atualização e polling de 10 segundos;
+- [x] criar cartões para clientes, cobranças pendentes, vencidas, vencendo hoje, próximos vencimentos, lembretes enviados e falhas de envio;
+- [x] exibir estado da automação e ações habilitar, pausar e verificar agora;
+- [x] separar métricas de negócio dos dados técnicos de execução;
+- [x] mostrar instante da última atualização e polling de 10 segundos;
 - [x] pausar polling com aba oculta e atualizar ao recuperar foco.
 
-**Pronto quando:** a tela inicial permite perceber a automação funcionando sem atualizar o navegador manualmente. Validado em 29/07/2026 com 8 testes de frontend, polling de 10 segundos no painel, acompanhamento de job a cada 2 segundos até estado terminal, lint e build de produção.
+**Pronto quando:** a tela inicial apresenta a situação das cobranças em linguagem de negócio e permite perceber a automação funcionando sem expor jobs, retries ou traces. Refinado em 29/07/2026 com métricas de vencimento calculadas no fuso do negócio e acompanhamento assíncrono em linguagem simplificada.
 
 #### Etapa 7.5 — Clientes
 
@@ -678,18 +679,18 @@ Cada etapa termina com uma verificação executável.
 
 - [x] implementar listagem paginada e filtros de situação;
 - [x] implementar criação, detalhe e edição;
-- [x] adicionar ações pagar, cancelar e processar com confirmação e feedback.
+- [x] adicionar ações pagar, cancelar e verificar agora com confirmação e feedback.
 
-**Pronto quando:** o ciclo principal de cobrança funciona integralmente pela interface. Validado em 29/07/2026 com 14 testes de frontend, filtros e paginação persistidos na URL, ações operacionais confirmadas em diálogo, feedback do job assíncrono, lint e build de produção.
+**Pronto quando:** o ciclo principal de cobrança funciona integralmente pela interface. Validado em 29/07/2026 com 14 testes de frontend, filtros e paginação persistidos na URL, ações confirmadas em diálogo e feedback assíncrono sem expor identificadores técnicos.
 
-#### Etapa 7.7 — Fila e inspeção do job
+#### Etapa 7.7 — Execuções da automação
 
-- implementar listagem paginada da fila por status e origem;
+- implementar listagem paginada das execuções por status e origem;
 - fazer polling a cada 2 segundos enquanto houver itens pendentes e desacelerar quando estável;
-- implementar detalhe do turno/job com linha do tempo, tentativas, decisões, trace, resultados e erros;
+- implementar detalhe técnico com linha do tempo, tentativas, decisões, trace, resultados e erros;
 - interromper polling do detalhe em estados terminais.
 
-**Pronto quando:** é possível acompanhar `queued → processing → completed/failed` e explicar visualmente o que ocorreu em cada turno.
+**Pronto quando:** a área avançada permite acompanhar `queued → processing → completed/failed` e explicar visualmente cada execução sem misturar esses dados com a Visão geral.
 
 #### Etapa 7.8 — Histórico de notificações
 
@@ -783,4 +784,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.7 — Fila e inspeção do job**: implementar acompanhamento paginado da fila, polling adaptativo e detalhe auditável de cada turno.
+Iniciar a **Etapa 7.7 — Execuções da automação**: implementar acompanhamento paginado, polling adaptativo e detalhe técnico auditável.

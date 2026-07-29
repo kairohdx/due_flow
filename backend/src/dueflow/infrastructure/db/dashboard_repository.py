@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -33,6 +33,21 @@ class DashboardRepository:
             select(func.count())
             .select_from(Charge)
             .where(Charge.status == ChargeStatus.PENDING)
+        )
+
+    def overdue_charges_total(self, reference_date: date) -> int:
+        return self._pending_charges_in_range(due_before=reference_date)
+
+    def charges_due_today_total(self, reference_date: date) -> int:
+        return self._pending_charges_in_range(
+            due_from=reference_date,
+            due_to=reference_date,
+        )
+
+    def charges_due_next_7_days_total(self, reference_date: date) -> int:
+        return self._pending_charges_in_range(
+            due_from=reference_date + timedelta(days=1),
+            due_to=reference_date + timedelta(days=7),
         )
 
     def completed_results_since(self, since: datetime) -> list[dict]:
@@ -108,3 +123,23 @@ class DashboardRepository:
 
     def _count(self, statement) -> int:
         return int(self.session.scalar(statement) or 0)
+
+    def _pending_charges_in_range(
+        self,
+        *,
+        due_before: date | None = None,
+        due_from: date | None = None,
+        due_to: date | None = None,
+    ) -> int:
+        statement = (
+            select(func.count())
+            .select_from(Charge)
+            .where(Charge.status == ChargeStatus.PENDING)
+        )
+        if due_before is not None:
+            statement = statement.where(Charge.due_date < due_before)
+        if due_from is not None:
+            statement = statement.where(Charge.due_date >= due_from)
+        if due_to is not None:
+            statement = statement.where(Charge.due_date <= due_to)
+        return self._count(statement)

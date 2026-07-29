@@ -10,6 +10,9 @@ class DashboardSummaryResponse(BaseModel):
     window_started_at: datetime
     customers_total: int
     charges_pending: int
+    charges_overdue: int
+    charges_due_today: int
+    charges_due_next_7_days: int
     charges_evaluated_last_24h: int
     notifications_processed_last_24h: int
     notification_failures_last_24h: int
