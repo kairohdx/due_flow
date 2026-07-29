@@ -103,6 +103,7 @@ def test_individual_processing_is_asynchronous_and_explainable(
     attempts = history.json()["items"]
     assert len(attempts) == 1
     assert attempts[0]["status"] == "simulated"
+    assert attempts[0]["processing_job_id"] == accepted_body["job_id"]
     assert attempts[0]["destination"] == "+5511999990000"
     assert attempts[0]["provider_response"]["request"]["to"] == "5511999990000"
     assert attempts[0]["provider_response"]["request"]["type"] == "text"
@@ -253,14 +254,14 @@ def test_reference_date_is_rejected_in_production(
         AuthService(AuthRepository(session), settings).create_user(
             email="production@example.com",
             name="Produção",
-            password="production-password-123",
+            password="not-a-real-test-password",
         )
     with TestClient(app) as production_client:
         login = production_client.post(
             "/auth/login",
             json={
                 "email": "production@example.com",
-                "password": "production-password-123",
+                "password": "not-a-real-test-password",
             },
         )
         production_client.headers["Authorization"] = (

@@ -38,10 +38,10 @@ const content: Record<
   },
   notifications: {
     eyebrow: "Histórico de envios",
-    title: "Notificações",
+    title: "Histórico de mensagens",
     description:
       "Tentativas, mensagens e traces serão conectados na Etapa 7.8.",
-    icon: "bell",
+    icon: "message",
   },
   settings: {
     eyebrow: "Preferências",

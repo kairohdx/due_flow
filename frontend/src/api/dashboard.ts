@@ -42,6 +42,15 @@ export function enableAutomation(): Promise<AutomationState> {
   });
 }
 
+export function configureAutomation(
+  intervalSeconds: number,
+): Promise<AutomationState> {
+  return apiFetch("/automation", {
+    method: "PUT",
+    body: JSON.stringify({ interval_seconds: intervalSeconds }),
+  });
+}
+
 export function disableAutomation(): Promise<AutomationState> {
   return apiFetch("/automation/disable", {
     method: "POST",

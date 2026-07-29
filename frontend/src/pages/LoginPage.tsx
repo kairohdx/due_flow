@@ -15,6 +15,8 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const passwordChanged =
+    new URLSearchParams(location.search).get("password") === "changed";
 
   if (!auth.initialized) return <AppLoading />;
   if (auth.accessToken) {
@@ -85,6 +87,11 @@ export function LoginPage() {
           </div>
 
           <form className="auth-form" onSubmit={onSubmit}>
+            {passwordChanged ? (
+              <div className="auth-success" role="status">
+                Senha alterada. Entre novamente com a nova senha.
+              </div>
+            ) : null}
             <label>
               <span>E-mail</span>
               <input

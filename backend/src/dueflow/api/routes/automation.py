@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 
 from dueflow.api.schemas.automation import (
     AutomationEnableRequest,
+    AutomationConfigureRequest,
     AutomationResponse,
 )
 from dueflow.application.automation import AutomationService
@@ -53,3 +54,13 @@ def disable_automation(request: Request) -> AutomationResponse:
         from_attributes=True,
     )
 
+
+@router.put("", response_model=AutomationResponse)
+def configure_automation(
+    payload: AutomationConfigureRequest,
+    request: Request,
+) -> AutomationResponse:
+    return AutomationResponse.model_validate(
+        service(request).configure(interval_seconds=payload.interval_seconds),
+        from_attributes=True,
+    )

@@ -51,6 +51,7 @@ class NotificationService:
         customer: Customer,
         evaluation: PolicyEvaluation,
         trace: dict[str, Any],
+        processing_job_id: UUID | None = None,
     ) -> NotificationExecution | None:
         decision = evaluation.decision
         if (
@@ -73,6 +74,7 @@ class NotificationService:
         now = datetime.now(UTC)
         reservation = self.repository.reserve(
             charge_id=charge.id,
+            processing_job_id=processing_job_id,
             notification_type=decision.notification_type,
             provider=self.provider.name,
             destination=customer.phone,
@@ -134,4 +136,3 @@ class NotificationService:
             deduplicated=False,
             error=None,
         )
-

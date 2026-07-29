@@ -373,6 +373,7 @@ Testar com um cliente HTTP falso/mock: validar URL, payload, headers esperados s
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `GET /auth/me`
+- `POST /auth/change-password`
 - `POST /customers`
 - `GET /customers`
 - `GET /customers/{id}`
@@ -388,6 +389,7 @@ Testar com um cliente HTTP falso/mock: validar URL, payload, headers esperados s
 - `GET /processing/jobs` com filtros de status, origem e período
 - `GET /processing/jobs/{id}`
 - `GET /automation`
+- `PUT /automation`
 - `POST /automation/enable`
 - `POST /automation/disable`
 - `GET /notifications`
@@ -692,16 +694,19 @@ Cada etapa termina com uma verificação executável.
 
 **Pronto quando:** a área avançada permite acompanhar `queued → processing → completed/failed` e explicar visualmente cada execução sem misturar esses dados com a Visão geral. Validado em 29/07/2026 com 17 testes de frontend, filtros e paginação na URL, polling adaptativo de 2/15 segundos, interrupção do polling em estado terminal, detalhe completo do PolicyFlow, lint e build de produção.
 
-#### Etapa 7.8 — Histórico de notificações
+#### Etapa 7.8 — Histórico de mensagens
 
-- implementar listagem paginada com filtros;
-- implementar detalhe da mensagem/tentativa e vínculos para cliente, cobrança e job;
-- diferenciar visualmente envio simulado, sucesso e falha.
+- [x] implementar listagem paginada com filtros;
+- [x] implementar detalhe da mensagem/tentativa e vínculos para cliente, cobrança e execução;
+- [x] diferenciar visualmente envio simulado, sucesso e falha.
 
-**Pronto quando:** toda tentativa pode ser encontrada e auditada sem Swagger.
+**Pronto quando:** toda tentativa pode ser encontrada e auditada sem Swagger. Validado em 29/07/2026 com 69 testes de backend, 20 testes de frontend, migration de vínculo entre tentativa e execução, filtros e paginação na URL, detalhe auditável, lint e build de produção.
 
 #### Etapa 7.9 — Qualidade da experiência e roteiro
 
+- [x] transformar o indicador lateral da automação em estado real e atalho para configurações;
+- [x] implementar configurações de conta, intervalo e ativação da automação;
+- [x] permitir troca autenticada de senha com revogação das sessões;
 - tratar loading, estados vazios, erros, confirmações e responsividade;
 - manter paginação e filtros na URL;
 - cobrir login, sessão, polling e roteiro principal com testes de frontend e ponta a ponta;
@@ -784,4 +789,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.8 — Histórico de notificações**: implementar listagem paginada, filtros, detalhe de cada tentativa e vínculos com cliente, cobrança e execução.
+Iniciar a **Etapa 7.9 — Qualidade da experiência e roteiro**: revisar estados, responsividade, acessibilidade e cobrir o roteiro principal ponta a ponta.

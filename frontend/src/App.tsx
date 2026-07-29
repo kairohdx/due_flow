@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuthBootstrap } from "./auth/useAuthBootstrap";
 import { AppShell } from "./components/AppShell";
-import { FoundationPage } from "./pages/FoundationPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { CustomerCreatePage } from "./pages/CustomerCreatePage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
@@ -12,6 +11,9 @@ import { ChargeDetailPage } from "./pages/ChargeDetailPage";
 import { ChargesPage } from "./pages/ChargesPage";
 import { ExecutionDetailPage } from "./pages/ExecutionDetailPage";
 import { ExecutionsPage } from "./pages/ExecutionsPage";
+import { NotificationDetailPage } from "./pages/NotificationDetailPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { LoginPage } from "./pages/LoginPage";
 
 export default function App() {
@@ -35,14 +37,9 @@ export default function App() {
         <Route path="cobrancas/:chargeId" element={<ChargeDetailPage />} />
         <Route path="fila" element={<ExecutionsPage />} />
         <Route path="fila/:executionId" element={<ExecutionDetailPage />} />
-        <Route
-          path="notificacoes"
-          element={<FoundationPage type="notifications" />}
-        />
-        <Route
-          path="configuracoes"
-          element={<FoundationPage type="settings" />}
-        />
+        <Route path="notificacoes" element={<NotificationsPage />} />
+        <Route path="notificacoes/:notificationId" element={<NotificationDetailPage />} />
+        <Route path="configuracoes" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
