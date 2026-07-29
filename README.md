@@ -431,9 +431,10 @@ Resumo:
 2. copie a connection string;
 3. envie o repositório ao GitHub;
 4. escolha **New > Blueprint** no Render;
-5. preencha `DATABASE_URL`, `INITIAL_ADMIN_EMAIL` e
-   `INITIAL_ADMIN_PASSWORD`;
-6. acesse a URL gerada e ative a automação.
+5. preencha `DATABASE_URL` e `INITIAL_ADMIN_EMAIL`;
+6. adicione `INITIAL_ADMIN_PASSWORD` diretamente no Environment do serviço,
+   sem registrar a credencial no Blueprint;
+7. acesse a URL gerada e ative a automação.
 
 O serviço aplica a baseline do Alembic, cria o administrador e carrega três
 cobranças idempotentes para a demonstração. Nenhum segredo deve ser enviado ao

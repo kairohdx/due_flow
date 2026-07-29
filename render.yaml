@@ -24,8 +24,6 @@ services:
         sync: false
       - key: INITIAL_ADMIN_NAME
         value: Administrador
-      - key: INITIAL_ADMIN_PASSWORD
-        sync: false
       - key: DEMO_SEED_ENABLED
         value: "true"
       - key: MESSAGE_PROVIDER

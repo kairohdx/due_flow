@@ -33,9 +33,13 @@ senha administrativa, token da Meta ou App Secret.
 3. Confirme o arquivo `render.yaml`.
 4. Preencha os valores solicitados:
    - `DATABASE_URL`: connection string do Neon;
-   - `INITIAL_ADMIN_EMAIL`: e-mail usado no primeiro login;
-   - `INITIAL_ADMIN_PASSWORD`: senha forte exclusiva para a demo.
+   - `INITIAL_ADMIN_EMAIL`: e-mail usado no primeiro login.
 5. Confirme a criação do serviço gratuito.
+6. Assim que o serviço for criado, abra **Environment** e adicione
+   `INITIAL_ADMIN_PASSWORD` como variável secreta. Ela não fica declarada no
+   Blueprint para evitar falsos positivos de scanners de segredo. Se o primeiro
+   deploy iniciar antes disso, adicione a variável e execute **Deploy latest
+   commit** novamente.
 
 O Blueprint gera `JWT_SECRET`, ativa cookies seguros, aplica as migrations,
 cria o administrador, carrega o seed idempotente e inicia API e worker.
@@ -81,6 +85,7 @@ Meta.
 Crie um `.env` local com:
 
 ```dotenv
+POSTGRES_PASSWORD=defina-uma-senha-local
 JWT_SECRET=troque-por-um-segredo-com-mais-de-32-caracteres
 INITIAL_ADMIN_EMAIL=admin@example.com
 INITIAL_ADMIN_PASSWORD=troque-esta-senha

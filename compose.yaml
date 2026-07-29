@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: dueflow
       POSTGRES_USER: dueflow
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dueflow-local}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
     volumes:
       - dueflow_postgres:/var/lib/postgresql/data
     healthcheck:
@@ -20,7 +20,7 @@ services:
     environment:
       APP_ENV: development
       APP_TIMEZONE: America/Sao_Paulo
-      DATABASE_URL: postgresql+psycopg://dueflow:${POSTGRES_PASSWORD:-dueflow-local}@postgres:5432/dueflow
+      DATABASE_URL: postgresql+psycopg://dueflow:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@postgres:5432/dueflow
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
       AUTH_COOKIE_SECURE: "false"
       INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:?defina INITIAL_ADMIN_EMAIL}
