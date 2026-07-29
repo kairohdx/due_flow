@@ -16,6 +16,7 @@ class NotificationAttemptResponse(BaseModel):
 
     id: UUID
     charge_id: UUID
+    processing_job_id: UUID | None
     notification_type: NotificationType
     provider: NotificationProvider
     destination: str
@@ -29,4 +30,3 @@ class NotificationAttemptResponse(BaseModel):
     trace: dict[str, Any] | None
     provider_response: dict[str, Any] | None
     processed_at: datetime
-

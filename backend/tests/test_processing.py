@@ -103,6 +103,7 @@ def test_individual_processing_is_asynchronous_and_explainable(
     attempts = history.json()["items"]
     assert len(attempts) == 1
     assert attempts[0]["status"] == "simulated"
+    assert attempts[0]["processing_job_id"] == accepted_body["job_id"]
     assert attempts[0]["destination"] == "+5511999990000"
     assert attempts[0]["provider_response"]["request"]["to"] == "5511999990000"
     assert attempts[0]["provider_response"]["request"]["type"] == "text"

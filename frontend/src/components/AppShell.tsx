@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../auth/authService";
 import { clearAuthState, useAuthState } from "../auth/authStore";
+import { getAutomation } from "../api/dashboard";
 import { Button } from "./ui/Button";
 import { Icon, type IconName } from "./ui/Icon";
 
@@ -11,7 +12,7 @@ const navItems: { to: string; label: string; icon: IconName }[] = [
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/cobrancas", label: "Cobranças", icon: "credit-card" },
   { to: "/fila", label: "Execuções da automação", icon: "activity" },
-  { to: "/notificacoes", label: "Notificações", icon: "bell" },
+  { to: "/notificacoes", label: "Histórico de mensagens", icon: "message" },
 ];
 
 const routeTitles: Record<string, string> = {
@@ -19,7 +20,8 @@ const routeTitles: Record<string, string> = {
   "/clientes": "Clientes",
   "/cobrancas": "Cobranças",
   "/fila": "Execuções da automação",
-  "/notificacoes": "Notificações",
+  "/notificacoes": "Histórico de mensagens",
+  "/configuracoes": "Configurações",
 };
 
 export function AppShell() {
@@ -27,6 +29,12 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const automation = useQuery({
+    queryKey: ["automation"],
+    queryFn: getAutomation,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -54,6 +62,8 @@ export function AppShell() {
         ? "Cobranças"
         : location.pathname.startsWith("/fila")
           ? "Execuções da automação"
+          : location.pathname.startsWith("/notificacoes")
+            ? "Histórico de mensagens"
         : "DueFlow");
 
   return (
@@ -93,10 +103,21 @@ export function AppShell() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="automation-mini">
-            <span className="automation-indicator" />
-            <div><strong>Automação</strong><small>Pronta para configurar</small></div>
-          </div>
+          <NavLink className="automation-mini" to="/configuracoes">
+            <span
+              className={`automation-indicator ${automation.data?.enabled ? "enabled" : ""}`}
+            />
+            <div>
+              <strong>Automação</strong>
+              <small>
+                {automation.isLoading
+                  ? "Consultando estado..."
+                  : automation.data?.enabled
+                    ? "Ativa"
+                    : "Pausada"}
+              </small>
+            </div>
+          </NavLink>
           <NavLink className="nav-link" to="/configuracoes">
             <Icon name="settings" />
             <span>Configurações</span>
@@ -120,7 +141,7 @@ export function AppShell() {
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button notification-button" aria-label="Notificações">
+            <button className="icon-button notification-button" aria-label="Histórico de mensagens">
               <Icon name="bell" />
               <span />
             </button>

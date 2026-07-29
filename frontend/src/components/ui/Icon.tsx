@@ -13,6 +13,7 @@ export type IconName =
   | "dashboard"
   | "logout"
   | "menu"
+  | "message"
   | "pause"
   | "play"
   | "refresh"
@@ -35,6 +36,7 @@ const paths: Record<IconName, React.ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>,
   logout: <><path d="M10 17l5-5-5-5M15 12H3" /><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" /></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8M8 13h5" /></>,
   pause: <><path d="M9 5v14M15 5v14" /></>,
   play: <><path d="m8 5 11 7-11 7V5Z" /></>,
   refresh: <><path d="M20 7h-5V2M4 17h5v5" /><path d="M18.5 9a7 7 0 0 0-12-3L4 8M5.5 15a7 7 0 0 0 12 3l2.5-2" /></>,

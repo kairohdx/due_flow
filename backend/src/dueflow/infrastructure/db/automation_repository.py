@@ -68,6 +68,24 @@ class AutomationRepository:
             session.refresh(row)
             return self._state(row)
 
+    def configure(
+        self,
+        *,
+        now: datetime,
+        interval_seconds: int,
+    ) -> AutomationState:
+        with self.database.session() as session:
+            row = session.get(AutomationSettings, SETTINGS_ID)
+            if row is None:
+                row = self._create(session)
+            row.interval_seconds = interval_seconds
+            if row.enabled:
+                row.next_run_at = now + timedelta(seconds=interval_seconds)
+            row.updated_at = now
+            session.commit()
+            session.refresh(row)
+            return self._state(row)
+
     def claim_due(self, *, now: datetime) -> AutomationTick | None:
         with self.database.session() as session:
             row = session.get(AutomationSettings, SETTINGS_ID)

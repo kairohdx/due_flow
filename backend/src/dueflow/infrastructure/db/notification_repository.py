@@ -29,6 +29,7 @@ class NotificationAttemptRepository:
         self,
         *,
         charge_id: UUID,
+        processing_job_id: UUID | None,
         notification_type: NotificationType,
         provider: NotificationProvider,
         destination: str,
@@ -45,6 +46,7 @@ class NotificationAttemptRepository:
 
         attempt = NotificationAttempt(
             charge_id=charge_id,
+            processing_job_id=processing_job_id,
             notification_type=notification_type,
             provider=provider,
             destination=destination,

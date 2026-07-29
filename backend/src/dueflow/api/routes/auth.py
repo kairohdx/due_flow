@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from dueflow.api.auth_dependencies import CurrentUser
 from dueflow.api.schemas.auth import (
     AccessTokenResponse,
+    ChangePasswordRequest,
     CurrentUserResponse,
     LoginRequest,
 )
@@ -111,3 +112,28 @@ def logout(
 @router.get("/me", response_model=CurrentUserResponse)
 def me(current_user: CurrentUser) -> CurrentUserResponse:
     return CurrentUserResponse.model_validate(current_user)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: CurrentUser,
+    request: Request,
+    response: Response,
+    session: SessionDependency,
+) -> None:
+    try:
+        service(request, session).change_password(
+            current_user,
+            current_password=payload.current_password,
+            new_password=payload.new_password,
+        )
+    except AuthenticationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    response.delete_cookie(
+        request.app.state.settings.auth_refresh_cookie_name,
+        path="/auth",
+    )

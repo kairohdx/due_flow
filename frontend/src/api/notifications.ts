@@ -1,0 +1,47 @@
+import { apiFetch } from "./client";
+import type {
+  NotificationAttempt,
+  NotificationProvider,
+  NotificationStatus,
+  NotificationType,
+  Page,
+} from "./types";
+
+export interface NotificationFilters {
+  page: number;
+  pageSize: number;
+  status?: NotificationStatus;
+  provider?: NotificationProvider;
+  type?: NotificationType;
+  processedFrom?: string;
+  processedTo?: string;
+}
+
+function queryString(params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  });
+  return query.toString();
+}
+
+export function getNotifications(
+  filters: NotificationFilters,
+): Promise<Page<NotificationAttempt>> {
+  const query = queryString({
+    page: filters.page,
+    page_size: filters.pageSize,
+    status: filters.status,
+    provider: filters.provider,
+    notification_type: filters.type,
+    processed_from: filters.processedFrom,
+    processed_to: filters.processedTo,
+  });
+  return apiFetch(`/notifications?${query}`);
+}
+
+export function getNotification(
+  notificationId: string,
+): Promise<NotificationAttempt> {
+  return apiFetch(`/notifications/${notificationId}`);
+}

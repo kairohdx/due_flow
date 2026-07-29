@@ -200,3 +200,45 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
     assert old_password.status_code == 401
     assert new_password.status_code == 200
     assert revoked_access.status_code == 401
+
+
+def test_authenticated_user_changes_password_and_sessions_are_revoked(
+    unauthenticated_client: TestClient,
+    database: Database,
+    settings: Settings,
+) -> None:
+    create_user(database, settings)
+    login = unauthenticated_client.post(
+        "/auth/login",
+        json={"email": "owner@example.com", "password": PASSWORD},
+    )
+    access_token = login.json()["access_token"]
+
+    changed = unauthenticated_client.post(
+        "/auth/change-password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "current_password": PASSWORD,
+            "new_password": "new-secure-password-789",
+        },
+    )
+
+    assert changed.status_code == 204
+    assert settings.auth_refresh_cookie_name not in unauthenticated_client.cookies
+    assert (
+        unauthenticated_client.get(
+            "/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        ).status_code
+        == 401
+    )
+    assert (
+        unauthenticated_client.post(
+            "/auth/login",
+            json={
+                "email": "owner@example.com",
+                "password": "new-secure-password-789",
+            },
+        ).status_code
+        == 200
+    )
