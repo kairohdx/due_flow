@@ -62,3 +62,15 @@ def test_meta_provider_requires_complete_and_valid_configuration() -> None:
 
     assert settings.message_provider == "meta"
     assert repr(settings.meta_whatsapp_token) == "SecretStr('**********')"
+
+
+def test_neon_postgres_url_uses_psycopg_driver() -> None:
+    settings = Settings(
+        database_url=(
+            "postgresql://user:password@example.neon.tech/neondb"
+            "?sslmode=require"
+        ),
+        _env_file=None,
+    )
+
+    assert settings.database_url.startswith("postgresql+psycopg://")

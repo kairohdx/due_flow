@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dueflow
+      POSTGRES_USER: dueflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dueflow-local}
+    volumes:
+      - dueflow_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dueflow -d dueflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      APP_ENV: development
+      APP_TIMEZONE: America/Sao_Paulo
+      DATABASE_URL: postgresql+psycopg://dueflow:${POSTGRES_PASSWORD:-dueflow-local}@postgres:5432/dueflow
+      JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
+      AUTH_COOKIE_SECURE: "false"
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:?defina INITIAL_ADMIN_EMAIL}
+      INITIAL_ADMIN_NAME: ${INITIAL_ADMIN_NAME:-Administrador}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:?defina INITIAL_ADMIN_PASSWORD}
+      DEMO_SEED_ENABLED: ${DEMO_SEED_ENABLED:-true}
+      MESSAGE_PROVIDER: ${MESSAGE_PROVIDER:-fake}
+      FAKE_DELIVERY_OUTCOME: ${FAKE_DELIVERY_OUTCOME:-delivered}
+      META_TEMPLATE_MODE: ${META_TEMPLATE_MODE:-retry_only}
+      META_TEMPLATE_NAME: ${META_TEMPLATE_NAME:-dueflow_aviso_cobranca_v1}
+      META_TEMPLATE_LANGUAGE: ${META_TEMPLATE_LANGUAGE:-pt_BR}
+      PORT: "10000"
+    ports:
+      - "8000:10000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  dueflow_postgres:

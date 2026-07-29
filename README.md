@@ -413,3 +413,26 @@ A resposta informa clientes cadastrados, cobranças pendentes, vencidas, vencend
 ## Idioma da documentação
 
 Os documentos Markdown do repositório são escritos em português do Brasil. Nomes de código e termos definidos por bibliotecas permanecem em inglês quando isso torna a implementação mais clara.
+
+## Deploy da demonstração
+
+O repositório inclui uma imagem única com frontend, API e worker, um
+`compose.yaml` para execução local e um Blueprint do Render. O banco recomendado
+para a demonstração é o PostgreSQL gratuito do Neon.
+
+O passo a passo completo está em
+[Deploy gratuito no Render com Neon](docs/deploy-render-neon.md).
+
+Resumo:
+
+1. crie o projeto `dueflow-demo` no Neon;
+2. copie a connection string;
+3. envie o repositório ao GitHub;
+4. escolha **New > Blueprint** no Render;
+5. preencha `DATABASE_URL`, `INITIAL_ADMIN_EMAIL` e
+   `INITIAL_ADMIN_PASSWORD`;
+6. acesse a URL gerada e ative a automação.
+
+O serviço aplica a baseline do Alembic, cria o administrador e carrega três
+cobranças idempotentes para a demonstração. Nenhum segredo deve ser enviado ao
+Git.

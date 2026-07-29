@@ -829,13 +829,20 @@ independentes, como alertar, suspender e abrir incidente.
 
 ### Etapa 9 — Empacotamento, demo e deploy
 
-- criar Docker/Compose;
-- criar seed determinístico com cobranças nos três cenários;
-- finalizar README e checklist;
-- testar instalação limpa e PostgreSQL;
-- realizar ensaio do vídeo e deploy em VPS simples.
+- [x] consolidar as migrations em uma baseline antes do primeiro banco externo;
+- [x] criar Docker/Compose;
+- [x] empacotar frontend, API e worker para o plano gratuito do Render;
+- [x] configurar PostgreSQL externo pelo `DATABASE_URL` do Neon;
+- [x] criar seed determinístico e idempotente com cobranças nos três cenários;
+- [x] criar administrador inicial sem senha padrão no repositório;
+- [x] configurar HTTPS, cookies seguros e mesma origem no Render;
+- [x] finalizar README, roteiro e guia de publicação;
+- [x] testar instalação limpa, rollback, frontend e backend;
+- [ ] criar o Blueprint na conta do Render e validar a URL pública;
+- [ ] realizar ensaio e gravação da demonstração;
+- [ ] testar o template real após sua aprovação pela Meta.
 
-**Pronto quando:** outra pessoa sobe o projeto seguindo apenas o README.
+**Pronto quando:** outra pessoa sobe o projeto seguindo apenas o README. O pacote de publicação foi concluído em 29/07/2026 com baseline única, imagem multi-stage, `compose.yaml`, `render.yaml`, bootstrap seguro, seed e guia Render + Neon. Permanecem ações externas na conta do usuário: criar o Blueprint, validar a URL e gravar a demonstração.
 
 A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só então os efeitos de notificação. Assim, a automação pode ser demonstrada com jobs observáveis antes de depender da API real da Meta.
 
@@ -874,7 +881,7 @@ A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só
 | Sessão | Refresh token roubado pode prolongar acesso | Cookie `HttpOnly`/`Secure`, rotação, hash no banco e revogação no logout |
 | Polling | Muitas abas podem aumentar consultas ao banco | Pausar em aba oculta, desacelerar quando estável e manter respostas agregadas pequenas |
 | Métricas | Contagens ambíguas enfraquecem a demonstração | Definir nomes e janela móvel de 24 horas no contrato da API |
-| Deploy | VPS, domínio e TLS ainda não escolhidos | Manter imagem portátil e decidir na etapa 8 |
+| Deploy gratuito | O worker dorme junto com o Web Service do Render após 15 minutos sem tráfego | Manter o painel aberto na demo; migrar a mesma imagem para VPS ou worker dedicado depois |
 
 Funcionalidades tentadoras que devem continuar fora: editor de templates, retry automático sofisticado, recorrência, cadastro/recuperação de senha, RBAC, dashboards gráficos e múltiplos canais. Nenhuma é necessária para validar decisão, envio e idempotência.
 
@@ -894,4 +901,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 9 — Empacotamento, demo e deploy**: consolidar as migrations antes de existir banco persistente, criar seed determinístico e validar uma instalação limpa. O teste externo do template deve ser retomado assim que a Meta aprovar `dueflow_aviso_cobranca_v1`.
+Criar o **Blueprint no Render**, preencher os três segredos solicitados e validar a URL pública. Em seguida, ensaiar a demonstração; o teste externo do template deve ser retomado assim que a Meta aprovar `dueflow_aviso_cobranca_v1`.
