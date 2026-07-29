@@ -1,7 +1,13 @@
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 from dueflow.domain.jobs import JobStatus, JobType
-from dueflow.infrastructure.db.models import ProcessingJob
+from dueflow.domain.messaging import (
+    NotificationAttemptStatus,
+    NotificationProvider,
+)
+from dueflow.domain.notifications import NotificationType
+from dueflow.infrastructure.db.models import NotificationAttempt, ProcessingJob
 
 
 def add_job(
@@ -11,6 +17,7 @@ def add_job(
     now: datetime,
     attempts: int = 1,
     recent: bool = True,
+    evaluated: int = 0,
 ) -> None:
     moment = now - (timedelta(hours=1) if recent else timedelta(hours=25))
     with database.session() as session:
@@ -22,6 +29,11 @@ def add_job(
                 scheduled_for=moment,
                 attempts=attempts,
                 max_attempts=3,
+                result=(
+                    {"evaluated": evaluated}
+                    if status == JobStatus.COMPLETED
+                    else None
+                ),
                 started_at=moment if attempts else None,
                 finished_at=(
                     moment
@@ -46,6 +58,7 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         status=JobStatus.COMPLETED,
         now=now,
         attempts=2,
+        evaluated=7,
     )
     add_job(database, status=JobStatus.FAILED, now=now)
     add_job(
@@ -54,7 +67,40 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         now=now,
         attempts=3,
         recent=False,
+        evaluated=99,
     )
+    charge = client.post(
+        "/charges",
+        json={
+            "customer_id": customer["id"],
+            "description": "Cobrança pendente",
+            "amount": "50.00",
+            "due_date": "2026-07-29",
+        },
+    ).json()
+    with database.session() as session:
+        for index, status in enumerate(
+            [
+                NotificationAttemptStatus.SIMULATED,
+                NotificationAttemptStatus.FAILED,
+            ]
+        ):
+            session.add(
+                NotificationAttempt(
+                    charge_id=UUID(charge["id"]),
+                    notification_type=NotificationType.DUE_TODAY,
+                    provider=NotificationProvider.FAKE,
+                    destination="+5511999990000",
+                    message="Mensagem de teste",
+                    status=status,
+                    error="falha controlada" if status.value == "failed" else None,
+                    idempotency_key=f"dashboard:{index}",
+                    policy_name="DueTodayPolicy",
+                    decision_reason="teste do dashboard",
+                    processed_at=now - timedelta(hours=1),
+                )
+            )
+        session.commit()
 
     response = client.get("/dashboard/summary")
 
@@ -63,6 +109,10 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         key: response.json()[key]
         for key in (
             "customers_total",
+            "charges_pending",
+            "charges_evaluated_last_24h",
+            "notifications_processed_last_24h",
+            "notification_failures_last_24h",
             "jobs_queued",
             "jobs_processing",
             "jobs_completed_last_24h",
@@ -71,6 +121,10 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         )
     } == {
         "customers_total": 1,
+        "charges_pending": 1,
+        "charges_evaluated_last_24h": 7,
+        "notifications_processed_last_24h": 1,
+        "notification_failures_last_24h": 1,
         "jobs_queued": 1,
         "jobs_processing": 1,
         "jobs_completed_last_24h": 1,

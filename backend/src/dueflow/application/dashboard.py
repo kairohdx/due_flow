@@ -10,6 +10,10 @@ class DashboardSummary:
     generated_at: datetime
     window_started_at: datetime
     customers_total: int
+    charges_pending: int
+    charges_evaluated_last_24h: int
+    notifications_processed_last_24h: int
+    notification_failures_last_24h: int
     jobs_queued: int
     jobs_processing: int
     jobs_completed_last_24h: int
@@ -23,10 +27,28 @@ class DashboardService:
 
     def summary(self, *, now: datetime) -> DashboardSummary:
         window_started_at = now - timedelta(hours=24)
+        completed_results = self.repository.completed_results_since(
+            window_started_at
+        )
         return DashboardSummary(
             generated_at=now,
             window_started_at=window_started_at,
             customers_total=self.repository.customers_total(),
+            charges_pending=self.repository.pending_charges_total(),
+            charges_evaluated_last_24h=sum(
+                int(result.get("evaluated", 0))
+                for result in completed_results
+            ),
+            notifications_processed_last_24h=(
+                self.repository.processed_notifications_since(
+                    window_started_at
+                )
+            ),
+            notification_failures_last_24h=(
+                self.repository.failed_notifications_since(
+                    window_started_at
+                )
+            ),
             jobs_queued=self.repository.jobs_with_status(JobStatus.QUEUED),
             jobs_processing=self.repository.jobs_with_status(
                 JobStatus.PROCESSING
