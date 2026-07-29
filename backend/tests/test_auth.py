@@ -161,3 +161,42 @@ def test_logout_revokes_session_and_access_token(
         assert refresh_session.revoked_at <= datetime.now(timezone.utc).replace(
             tzinfo=None
         )
+
+
+def test_reset_password_rejects_old_password_and_revokes_sessions(
+    unauthenticated_client: TestClient,
+    database: Database,
+    settings: Settings,
+) -> None:
+    create_user(database, settings)
+    login = unauthenticated_client.post(
+        "/auth/login",
+        json={"email": "owner@example.com", "password": PASSWORD},
+    )
+    old_access_token = login.json()["access_token"]
+
+    with database.session() as session:
+        AuthService(AuthRepository(session), settings).reset_password(
+            email=" OWNER@EXAMPLE.COM ",
+            password="new-secure-password-456",
+        )
+
+    old_password = unauthenticated_client.post(
+        "/auth/login",
+        json={"email": "owner@example.com", "password": PASSWORD},
+    )
+    new_password = unauthenticated_client.post(
+        "/auth/login",
+        json={
+            "email": "owner@example.com",
+            "password": "new-secure-password-456",
+        },
+    )
+    revoked_access = unauthenticated_client.get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {old_access_token}"},
+    )
+
+    assert old_password.status_code == 401
+    assert new_password.status_code == 200
+    assert revoked_access.status_code == 401

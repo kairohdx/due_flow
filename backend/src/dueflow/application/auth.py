@@ -24,6 +24,10 @@ class DuplicateUserError(Exception):
     pass
 
 
+class UserNotFoundError(Exception):
+    pass
+
+
 @dataclass(frozen=True)
 class TokenPair:
     access_token: str
@@ -55,8 +59,7 @@ class AuthService:
             raise DuplicateUserError("já existe um usuário com este e-mail")
         if not normalized_name:
             raise ValueError("o nome não pode ser vazio")
-        if len(password) < 8:
-            raise ValueError("a senha deve ter pelo menos 8 caracteres")
+        self._validate_password(password)
         user = User(
             email=normalized_email,
             name=normalized_name,
@@ -72,6 +75,17 @@ class AuthService:
         if not user.active:
             raise AuthenticationError("usuário inativo")
         return user, self._create_token_pair(user)
+
+    def reset_password(self, *, email: str, password: str) -> User:
+        user = self.repository.get_user_by_email(self.normalize_email(email))
+        if user is None:
+            raise UserNotFoundError("usuário não encontrado")
+        self._validate_password(password)
+        return self.repository.update_password_and_revoke_sessions(
+            user,
+            password_hash=self.password_hasher.hash(password),
+            revoked_at=datetime.now(timezone.utc),
+        )
 
     def refresh(self, raw_token: str) -> tuple[User, TokenPair]:
         current = self._validate_refresh_token(raw_token)
@@ -203,6 +217,11 @@ class AuthService:
             return self.password_hasher.verify(password_hash, password)
         except (VerifyMismatchError, InvalidHashError):
             return False
+
+    @staticmethod
+    def _validate_password(password: str) -> None:
+        if len(password) < 8:
+            raise ValueError("a senha deve ter pelo menos 8 caracteres")
 
     @staticmethod
     def _hash_refresh_secret(secret: str) -> str:

@@ -644,15 +644,15 @@ Cada etapa termina com uma verificação executável.
 
 **Pronto quando:** OpenAPI descreve paginação, filtros, métricas e detalhes sem o frontend precisar agregar tabelas ou interpretar JSON interno. Validado em 29/07/2026 com 68 testes, envelope uniforme nas quatro listagens, métricas determinísticas e resultado do job tipado no OpenAPI.
 
-#### Etapa 7.3 — Fundação do frontend e sessão
+#### Etapa 7.3 — Fundação do frontend e sessão — concluída
 
-- criar React, TypeScript e Vite;
-- configurar rotas públicas/privadas, layout, cliente HTTP e TanStack Query;
-- implementar login, restauração da sessão, refresh coordenado e logout;
-- adaptar os padrões do `mvp-painel-loja-local` sem importar RBAC ou contexto de loja;
-- criar componentes base de tabela, paginação, formulário, feedback, estado vazio e erro.
+- [x] criar React, TypeScript e Vite;
+- [x] configurar rotas públicas/privadas, layout, cliente HTTP e TanStack Query;
+- [x] implementar login, restauração da sessão, refresh coordenado e logout;
+- [x] adaptar os padrões do `mvp-painel-loja-local` sem importar RBAC ou contexto de loja;
+- [x] criar componentes base de tabela, paginação, formulário, feedback, estado vazio e erro.
 
-**Pronto quando:** a aplicação abre no login, mantém o usuário conectado com segurança e navega pelo shell autenticado.
+**Pronto quando:** a aplicação abre no login, mantém o usuário conectado com segurança e navega pelo shell autenticado. Validado em 29/07/2026 com lint, 5 testes de frontend e build de produção; o shell responsivo e a identidade visual própria do DueFlow estão preparados para as telas funcionais.
 
 #### Etapa 7.4 — Dashboard operacional
 
@@ -780,4 +780,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.3 — Fundação do frontend e sessão**: criar o projeto React/Vite, adaptar os padrões de autenticação do painel de referência e estabelecer o shell visual moderno do DueFlow.
+Iniciar a **Etapa 7.4 — Dashboard operacional**: conectar métricas, estado da automação, ação de processamento e polling inteligente à tela inicial já estruturada.
