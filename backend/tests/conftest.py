@@ -52,7 +52,7 @@ def client(
     database: Database,
     unauthenticated_client: TestClient,
 ) -> Iterator[TestClient]:
-    password = "tests-password-123"
+    password = "not-a-real-test-password"
     with database.session() as session:
         AuthService(AuthRepository(session), settings).create_user(
             email="admin@example.com",

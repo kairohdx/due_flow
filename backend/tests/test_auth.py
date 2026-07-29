@@ -10,7 +10,8 @@ from dueflow.infrastructure.db.database import Database
 from dueflow.infrastructure.db.models import RefreshSession, User
 
 
-PASSWORD = "correct-horse-battery-staple"
+PASSWORD = "not-a-real-test-password"
+NEW_PASSWORD = "not-a-real-new-password"
 
 
 def create_user(database: Database, settings: Settings, *, active: bool = True) -> User:
@@ -178,7 +179,7 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
     with database.session() as session:
         AuthService(AuthRepository(session), settings).reset_password(
             email=" OWNER@EXAMPLE.COM ",
-            password="new-secure-password-456",
+            password=NEW_PASSWORD,
         )
 
     old_password = unauthenticated_client.post(
@@ -189,7 +190,7 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
         "/auth/login",
         json={
             "email": "owner@example.com",
-            "password": "new-secure-password-456",
+            "password": NEW_PASSWORD,
         },
     )
     revoked_access = unauthenticated_client.get(
@@ -219,7 +220,7 @@ def test_authenticated_user_changes_password_and_sessions_are_revoked(
         headers={"Authorization": f"Bearer {access_token}"},
         json={
             "current_password": PASSWORD,
-            "new_password": "new-secure-password-789",
+            "new_password": NEW_PASSWORD,
         },
     )
 
@@ -237,7 +238,7 @@ def test_authenticated_user_changes_password_and_sessions_are_revoked(
             "/auth/login",
             json={
                 "email": "owner@example.com",
-                "password": "new-secure-password-789",
+                "password": NEW_PASSWORD,
             },
         ).status_code
         == 200

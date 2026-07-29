@@ -254,14 +254,14 @@ def test_reference_date_is_rejected_in_production(
         AuthService(AuthRepository(session), settings).create_user(
             email="production@example.com",
             name="Produção",
-            password="production-password-123",
+            password="not-a-real-test-password",
         )
     with TestClient(app) as production_client:
         login = production_client.post(
             "/auth/login",
             json={
                 "email": "production@example.com",
-                "password": "production-password-123",
+                "password": "not-a-real-test-password",
             },
         )
         production_client.headers["Authorization"] = (

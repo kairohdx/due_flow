@@ -11,6 +11,9 @@ import {
 } from "../auth/authStore";
 import { SettingsPage } from "./SettingsPage";
 
+const CURRENT_TEST_PASSWORD = "not-a-real-current-password";
+const NEW_TEST_PASSWORD = "not-a-real-new-password";
+
 vi.mock("../api/dashboard", () => ({
   getAutomation: vi.fn(),
   configureAutomation: vi.fn(),
@@ -100,18 +103,18 @@ it("altera a senha, encerra a sessão e direciona para o login", async () => {
   renderPage();
 
   await screen.findByText("Segurança");
-  await user.type(screen.getByLabelText("Senha atual"), "senha-antiga");
-  await user.type(screen.getByLabelText("Nova senha"), "senha-nova-123");
+  await user.type(screen.getByLabelText("Senha atual"), CURRENT_TEST_PASSWORD);
+  await user.type(screen.getByLabelText("Nova senha"), NEW_TEST_PASSWORD);
   await user.type(
     screen.getByLabelText("Confirmar nova senha"),
-    "senha-nova-123",
+    NEW_TEST_PASSWORD,
   );
   await user.click(screen.getByRole("button", { name: "Alterar senha" }));
 
   await waitFor(() =>
     expect(settingsApi.changePassword).toHaveBeenCalledWith({
-      current_password: "senha-antiga",
-      new_password: "senha-nova-123",
+      current_password: CURRENT_TEST_PASSWORD,
+      new_password: NEW_TEST_PASSWORD,
     }),
   );
   expect(await screen.findByText("Login após senha alterada")).toBeInTheDocument();
