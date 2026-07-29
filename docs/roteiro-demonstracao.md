@@ -2,13 +2,19 @@
 
 Este roteiro valida o fluxo principal exclusivamente pelo painel, depois que API,
 worker e frontend estiverem em execução e o usuário administrador tiver sido criado.
-O provider deve permanecer como `fake` durante a demonstração.
+O fluxo principal pode permanecer no provider `fake` para ser determinístico.
+Como evidência adicional, o provider `meta` já foi validado localmente e no
+Render com uma mensagem de texto livre recebida no celular. O único teste externo
+pendente é o envio com template aprovado.
 
 ## Preparação
 
-1. Entre no painel com o administrador local.
-2. Em **Configurações**, mantenha a automação ativa e o intervalo em 2 minutos.
-3. Confirme que o indicador lateral apresenta **Ativa**.
+1. Acesse a URL do Render. O primeiro acesso após inatividade pode levar cerca
+   de um minuto.
+2. Entre no painel com o administrador definido em
+   `INITIAL_ADMIN_EMAIL`.
+3. Em **Configurações**, mantenha a automação ativa e o intervalo em 2 minutos.
+4. Confirme que o indicador lateral apresenta **Ativa**.
 
 ## Fluxo principal
 

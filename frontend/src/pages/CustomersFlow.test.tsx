@@ -99,13 +99,13 @@ it("cadastra cliente e navega para o detalhe", async () => {
   );
 
   await user.type(screen.getByLabelText("Nome do cliente"), "Empresa Exemplo");
-  await user.type(screen.getByLabelText("WhatsApp"), "+55 11 99999-0000");
+  await user.type(screen.getByLabelText("WhatsApp"), "11999990000");
   await user.click(screen.getByRole("button", { name: "Cadastrar cliente" }));
 
   expect(customersApi.createCustomer).toHaveBeenCalledWith(
     {
       name: "Empresa Exemplo",
-      phone: "+55 11 99999-0000",
+      phone: "+5511999990000",
       active: true,
     },
     expect.anything(),

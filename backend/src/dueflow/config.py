@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "production"] = "development"
     app_host: str = "0.0.0.0"
     app_port: int = Field(default=8000, ge=1, le=65_535)
+    frontend_dist_path: str = ""
     database_url: str = "sqlite:///./dueflow.db"
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
     app_timezone: str = "America/Sao_Paulo"
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
     worker_lock_ttl_seconds: int = Field(default=300, ge=10)
     worker_max_attempts: int = Field(default=3, ge=1, le=10)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    demo_seed_enabled: bool = False
 
     @field_validator("app_timezone")
     @classmethod
@@ -59,6 +61,17 @@ class Settings(BaseSettings):
             ZoneInfo(value)
         except ZoneInfoNotFoundError as exc:
             raise ValueError(f"fuso horário desconhecido: {value}") from exc
+        return value
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_postgres_driver(cls, value: object) -> object:
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return value.replace(
+                "postgresql://",
+                "postgresql+psycopg://",
+                1,
+            )
         return value
 
     @field_validator("jwt_secret")

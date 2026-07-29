@@ -731,9 +731,9 @@ Cada etapa termina com uma verificação executável.
 - [x] testar via HTTP mock;
 - [x] exibir provider, aceite HTTP, ID da mensagem e resposta sanitizada no painel;
 - [x] documentar configuração, teste manual e fallback simulado;
-- [ ] validar manualmente com credencial e destinatário autorizados.
+- [x] validar manualmente com credencial e destinatário autorizados.
 
-**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha de requisição fica auditável. Implementação validada em 29/07/2026 com seleção segura no worker, credenciais obrigatórias apenas no modo Meta, timeout explícito, respostas sanitizadas, histórico visível no detalhe da cobrança, identificação clara do provider e retorno Meta legível no painel, além de testes HTTP de sucesso, rejeição, timeout e contrato inválido. O envio manual permanece pendente até a disponibilização de credencial e destinatário autorizados.
+**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha de requisição fica auditável. Implementação validada em 29/07/2026 com seleção segura no worker, credenciais obrigatórias apenas no modo Meta, timeout explícito, respostas sanitizadas, histórico visível no detalhe da cobrança, identificação clara do provider e retorno Meta legível no painel, além de testes HTTP de sucesso, rejeição, timeout e contrato inválido. Em 29/07/2026, o envio real de texto livre também foi validado com credencial e destinatário autorizados, tanto pelo comando local quanto pela aplicação publicada no Render, com recebimento confirmado no celular.
 
 #### Etapa 8.2 — Webhooks e estados de entrega — concluída
 
@@ -767,7 +767,7 @@ Cada etapa termina com uma verificação executável.
 - [x] oferecer cenários determinísticos `delivered`, `read` e `failed` sem falsificar o endpoint público da Meta;
 - [x] identificar os eventos fictícios como simulados e fazê-los alimentar a mesma timeline, polling, catálogo e métricas.
 
-**Pronto quando:** o painel mostra separadamente se a Meta aceitou a requisição e qual foi o resultado posterior no WhatsApp; nenhuma resposta HTTP de sucesso é apresentada como entrega confirmada; falhas síncronas e assíncronas possuem alerta, código, explicação em português, orientação e detalhes técnicos sanitizados; e as métricas não misturam aceite, entrega e leitura. Etapa concluída em 29/07/2026 com migration do contrato de dois eixos, resultado `unknown` para comunicação inconclusiva, timeline no painel, indicadores separados, catálogo inicial de erros com fallback, tratamento do `131047`, polling dos estados em trânsito e validação automatizada de assinatura, progressão, duplicação, ordenação, sanitização e métricas. O modo fake também percorre, em ciclos distintos do worker, os cenários determinísticos de entrega, leitura ou falha e alimenta a mesma experiência sem chamar a Meta.
+**Pronto quando:** o painel mostra separadamente se a Meta aceitou a requisição e qual foi o resultado posterior no WhatsApp; nenhuma resposta HTTP de sucesso é apresentada como entrega confirmada; falhas síncronas e assíncronas possuem alerta, código, explicação em português, orientação e detalhes técnicos sanitizados; e as métricas não misturam aceite, entrega e leitura. Etapa concluída em 29/07/2026 com migration do contrato de dois eixos, resultado `unknown` para comunicação inconclusiva, timeline no painel, indicadores separados, catálogo inicial de erros com fallback, tratamento do `131047`, polling dos estados em trânsito e validação automatizada de assinatura, progressão, duplicação, ordenação, sanitização e métricas. O modo fake também percorre, em ciclos distintos do worker, os cenários determinísticos de entrega, leitura ou falha e alimenta a mesma experiência sem chamar a Meta. A integração pública foi comprovada no Render com verificação do webhook, aceite HTTP real, correlação por `wamid`, recebimento de evento `131047` e posterior entrega de texto livre ao celular durante uma janela válida.
 
 #### Etapa 8.3 — Retentativa manual auditável — concluída
 
@@ -829,29 +829,36 @@ independentes, como alertar, suspender e abrir incidente.
 
 ### Etapa 9 — Empacotamento, demo e deploy
 
-- criar Docker/Compose;
-- criar seed determinístico com cobranças nos três cenários;
-- finalizar README e checklist;
-- testar instalação limpa e PostgreSQL;
-- realizar ensaio do vídeo e deploy em VPS simples.
+- [x] consolidar as migrations em uma baseline antes do primeiro banco externo;
+- [x] criar Docker/Compose;
+- [x] empacotar frontend, API e worker para o plano gratuito do Render;
+- [x] configurar PostgreSQL externo pelo `DATABASE_URL` do Neon;
+- [x] criar seed determinístico e idempotente com cobranças nos três cenários;
+- [x] criar administrador inicial sem senha padrão no repositório;
+- [x] configurar HTTPS, cookies seguros e mesma origem no Render;
+- [x] finalizar README, roteiro e guia de publicação;
+- [x] testar instalação limpa, rollback, frontend e backend;
+- [x] criar o Blueprint na conta do Render e validar a URL pública;
+- [ ] realizar ensaio e gravação da demonstração;
+- [ ] testar o template real após sua aprovação pela Meta.
 
-**Pronto quando:** outra pessoa sobe o projeto seguindo apenas o README.
+**Pronto quando:** outra pessoa sobe o projeto seguindo apenas o README. O pacote de publicação foi concluído em 29/07/2026 com baseline única, imagem multi-stage, `compose.yaml`, `render.yaml`, bootstrap seguro, seed e guia Render + Neon. O Blueprint, a URL pública, o banco Neon, o webhook e o envio real de texto livre foram validados em 29/07/2026. Permanecem somente o ensaio/gravação da demonstração e o teste externo do template após sua aprovação pela Meta.
 
 A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só então os efeitos de notificação. Assim, a automação pode ser demonstrada com jobs observáveis antes de depender da API real da Meta.
 
 ## 21. Checklist da demonstração
 
-- [ ] Ambiente usa provider `simulated` e relógio/data previsível.
-- [ ] Banco está migrado e seed opcional carregado.
-- [ ] Cliente de teste tem telefone válido.
-- [ ] Há cobrança vencendo hoje ou dentro da janela.
-- [ ] Cadastrar cliente pela interface.
-- [ ] Cadastrar cobrança pela interface.
-- [ ] Clicar em **Processar agora**.
-- [ ] Mostrar `FirstMatch`, policies avaliadas, policy vencedora e motivo.
-- [ ] Mostrar mensagem e tentativa `simulated` no histórico.
-- [ ] Processar novamente e mostrar que não duplicou.
-- [ ] Opcional: trocar para provider Meta e mostrar recebimento no número autorizado.
+- [x] Ambiente usa provider `simulated` e relógio/data previsível.
+- [x] Banco está migrado e seed opcional carregado.
+- [x] Cliente de teste tem telefone válido.
+- [x] Há cobrança vencendo hoje ou dentro da janela.
+- [x] Cadastrar cliente pela interface.
+- [x] Cadastrar cobrança pela interface.
+- [x] Clicar em **Processar agora**.
+- [x] Mostrar `FirstMatch`, policies avaliadas, policy vencedora e motivo.
+- [x] Mostrar mensagem e tentativa `simulated` no histórico.
+- [x] Processar novamente e mostrar que não duplicou.
+- [x] Opcional: trocar para provider Meta e mostrar recebimento no número autorizado.
 - [ ] Ter gravação/plano alternativo caso a API Meta esteja indisponível.
 - [ ] Confirmar que tokens e telefone completo não aparecem em logs ou vídeo.
 
@@ -874,7 +881,7 @@ A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só
 | Sessão | Refresh token roubado pode prolongar acesso | Cookie `HttpOnly`/`Secure`, rotação, hash no banco e revogação no logout |
 | Polling | Muitas abas podem aumentar consultas ao banco | Pausar em aba oculta, desacelerar quando estável e manter respostas agregadas pequenas |
 | Métricas | Contagens ambíguas enfraquecem a demonstração | Definir nomes e janela móvel de 24 horas no contrato da API |
-| Deploy | VPS, domínio e TLS ainda não escolhidos | Manter imagem portátil e decidir na etapa 8 |
+| Deploy gratuito | O worker dorme junto com o Web Service do Render após 15 minutos sem tráfego | Manter o painel aberto na demo; migrar a mesma imagem para VPS ou worker dedicado depois |
 
 Funcionalidades tentadoras que devem continuar fora: editor de templates, retry automático sofisticado, recorrência, cadastro/recuperação de senha, RBAC, dashboards gráficos e múltiplos canais. Nenhuma é necessária para validar decisão, envio e idempotência.
 
@@ -894,4 +901,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 9 — Empacotamento, demo e deploy**: consolidar as migrations antes de existir banco persistente, criar seed determinístico e validar uma instalação limpa. O teste externo do template deve ser retomado assim que a Meta aprovar `dueflow_aviso_cobranca_v1`.
+Ensaiar e gravar a demonstração. O envio real de texto livre já foi validado localmente e no Render; o único cenário externo da integração ainda pendente é o template, que deve ser testado assim que a Meta aprovar `dueflow_aviso_cobranca_v1`.

@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: dueflow-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: AUTH_COOKIE_SAMESITE
+        value: lax
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
+      - key: INITIAL_ADMIN_NAME
+        value: Administrador
+      - key: DEMO_SEED_ENABLED
+        value: "true"
+      - key: MESSAGE_PROVIDER
+        value: fake
+      - key: FAKE_DELIVERY_OUTCOME
+        value: delivered
+      - key: FAKE_DELIVERY_DELAY_SECONDS
+        value: "2"
+      - key: META_TEMPLATE_MODE
+        value: retry_only
+      - key: META_TEMPLATE_NAME
+        value: dueflow_aviso_cobranca_v1
+      - key: META_TEMPLATE_LANGUAGE
+        value: pt_BR
+      - key: LOG_LEVEL
+        value: INFO
