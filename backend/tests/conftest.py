@@ -5,6 +5,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from dueflow.config import Settings
+from dueflow.application.auth import AuthService
+from dueflow.infrastructure.db.auth_repository import AuthRepository
 from dueflow.infrastructure.db.base import Base
 from dueflow.infrastructure.db import models  # noqa: F401
 from dueflow.infrastructure.db.database import Database
@@ -22,6 +24,7 @@ def settings(database_path: Path) -> Settings:
         app_env="test",
         database_url=f"sqlite:///{database_path.as_posix()}",
         cors_origins=["http://testserver"],
+        jwt_secret="test-secret-with-at-least-thirty-two-characters",
     )
 
 
@@ -34,10 +37,37 @@ def database(settings: Settings) -> Iterator[Database]:
 
 
 @pytest.fixture
-def client(settings: Settings, database: Database) -> Iterator[TestClient]:
+def unauthenticated_client(
+    settings: Settings,
+    database: Database,
+) -> Iterator[TestClient]:
     app = create_app(settings)
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def client(
+    settings: Settings,
+    database: Database,
+    unauthenticated_client: TestClient,
+) -> Iterator[TestClient]:
+    password = "tests-password-123"
+    with database.session() as session:
+        AuthService(AuthRepository(session), settings).create_user(
+            email="admin@example.com",
+            name="Administrador de Teste",
+            password=password,
+        )
+    login = unauthenticated_client.post(
+        "/auth/login",
+        json={"email": "admin@example.com", "password": password},
+    )
+    assert login.status_code == 200
+    unauthenticated_client.headers.update(
+        {"Authorization": f"Bearer {login.json()['access_token']}"}
+    )
+    yield unauthenticated_client
 
 
 @pytest.fixture

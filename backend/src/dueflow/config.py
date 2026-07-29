@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
     app_timezone: str = "America/Sao_Paulo"
     default_reminder_days_before: int = Field(default=3, ge=0)
+    jwt_secret: str = Field(
+        default="dueflow-development-secret-change-before-production",
+        min_length=32,
+    )
+    jwt_issuer: str = "dueflow"
+    jwt_audience: str = "dueflow-web"
+    jwt_access_token_expires_minutes: int = Field(default=15, ge=1, le=1440)
+    auth_refresh_token_expires_days: int = Field(default=30, ge=1, le=365)
+    auth_refresh_cookie_name: str = "dueflow_refresh"
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     message_provider: Literal["fake", "meta"] = "fake"
     automation_interval_seconds: int = Field(default=120, ge=1, le=86_400)
     worker_poll_interval_seconds: float = Field(default=2, gt=0, le=60)
@@ -36,6 +47,33 @@ class Settings(BaseSettings):
         except ZoneInfoNotFoundError as exc:
             raise ValueError(f"fuso horário desconhecido: {value}") from exc
         return value
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def validate_jwt_secret(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("JWT_SECRET não pode ser vazio")
+        return value
+
+    @model_validator(mode="after")
+    def validate_auth_security(self) -> "Settings":
+        development_secret = (
+            "dueflow-development-secret-change-before-production"
+        )
+        if self.app_env == "production":
+            if self.jwt_secret == development_secret:
+                raise ValueError(
+                    "JWT_SECRET deve ser alterado em produção"
+                )
+            if not self.auth_cookie_secure:
+                raise ValueError(
+                    "AUTH_COOKIE_SECURE deve ser true em produção"
+                )
+        if self.auth_cookie_samesite == "none" and not self.auth_cookie_secure:
+            raise ValueError(
+                "SameSite=None exige AUTH_COOKIE_SECURE=true"
+            )
+        return self
 
 
 @lru_cache

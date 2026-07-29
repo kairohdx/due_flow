@@ -28,6 +28,8 @@ def test_initial_migration_creates_and_removes_expected_tables(
         "customers",
         "notification_attempts",
         "processing_jobs",
+        "refresh_sessions",
+        "users",
     }
 
     command.downgrade(config, "base")
