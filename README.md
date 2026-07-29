@@ -55,6 +55,9 @@ python -m dueflow.worker
 
 O worker consulta a fila no banco a cada dois segundos. Ele executa o PolicyFlow, renderiza a mensagem e usa o provider configurado. O padrão é `MESSAGE_PROVIDER=fake`, que não acessa a rede.
 
+Para validar o produto integralmente pela interface, consulte o
+[roteiro de demonstração](docs/roteiro-demonstracao.md).
+
 ## Frontend local
 
 Requisitos:

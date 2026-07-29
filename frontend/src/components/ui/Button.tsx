@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -8,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
 }
 
-export function Button({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({
   variant = "primary",
   loading = false,
   icon,
@@ -16,9 +16,10 @@ export function Button({
   className = "",
   disabled,
   ...props
-}: ButtonProps) {
+}, ref) {
   return (
     <button
+      ref={ref}
       className={`button button-${variant} ${className}`.trim()}
       disabled={disabled || loading}
       {...props}
@@ -27,4 +28,4 @@ export function Button({
       <span>{loading ? "Aguarde..." : children}</span>
     </button>
   );
-}
+});

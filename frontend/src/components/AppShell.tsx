@@ -68,6 +68,9 @@ export function AppShell() {
 
   return (
     <div className={`app-shell ${menuOpen ? "menu-open" : ""}`}>
+      <a className="skip-link" href="#conteudo-principal">
+        Ir para o conteúdo principal
+      </a>
       <button
         className="sidebar-backdrop"
         aria-label="Fechar menu"
@@ -103,15 +106,29 @@ export function AppShell() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <NavLink className="automation-mini" to="/configuracoes">
+          <NavLink
+            aria-label={`Automação: ${
+              automation.isLoading
+                ? "consultando estado"
+                : automation.isError
+                  ? "estado indisponível"
+                  : automation.data?.enabled
+                    ? "ativa"
+                    : "pausada"
+            }`}
+            className="automation-mini"
+            to="/configuracoes"
+          >
             <span
               className={`automation-indicator ${automation.data?.enabled ? "enabled" : ""}`}
             />
             <div>
               <strong>Automação</strong>
-              <small>
+              <small aria-live="polite">
                 {automation.isLoading
                   ? "Consultando estado..."
+                  : automation.isError
+                    ? "Estado indisponível"
                   : automation.data?.enabled
                     ? "Ativa"
                     : "Pausada"}
@@ -141,14 +158,18 @@ export function AppShell() {
             </div>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button notification-button" aria-label="Histórico de mensagens">
+            <button
+              className="icon-button notification-button"
+              aria-label="Abrir histórico de mensagens"
+              onClick={() => navigate("/notificacoes")}
+            >
               <Icon name="bell" />
-              <span />
             </button>
             <div className="user-menu-wrap">
               <button
                 className="user-trigger"
                 onClick={() => setUserMenuOpen((open) => !open)}
+                aria-label="Abrir menu da conta"
                 aria-expanded={userMenuOpen}
               >
                 <span className="avatar">{initials || "DF"}</span>
@@ -176,7 +197,7 @@ export function AppShell() {
             </div>
           </div>
         </header>
-        <main className="page-content">
+        <main className="page-content" id="conteudo-principal" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

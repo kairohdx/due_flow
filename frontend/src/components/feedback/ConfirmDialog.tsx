@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Button } from "../ui/Button";
 
 export function ConfirmDialog({
@@ -19,6 +20,22 @@ export function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    cancelButtonRef.current?.focus();
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !loading) onCancel();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, [loading, onCancel, open]);
+
   if (!open) return null;
   return (
     <div className="dialog-backdrop" role="presentation" onMouseDown={onCancel}>
@@ -33,7 +50,9 @@ export function ConfirmDialog({
         <h2 id="confirm-title">{title}</h2>
         <p id="confirm-description">{description}</p>
         <footer>
-          <Button variant="secondary" onClick={onCancel}>Voltar</Button>
+          <Button ref={cancelButtonRef} variant="secondary" onClick={onCancel}>
+            Voltar
+          </Button>
           <Button
             variant={danger ? "danger" : "primary"}
             loading={loading}

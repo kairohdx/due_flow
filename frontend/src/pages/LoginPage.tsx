@@ -15,12 +15,14 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigationState = location.state as { from?: string } | null;
+  const returnTo = navigationState?.from ?? "/";
   const passwordChanged =
     new URLSearchParams(location.search).get("password") === "changed";
 
   if (!auth.initialized) return <AppLoading />;
   if (auth.accessToken) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={returnTo} replace />;
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -31,8 +33,7 @@ export function LoginPage() {
       const token = await login({ email, password });
       const user = await getMe(token.access_token);
       setAuthSession(token.access_token, user);
-      const state = location.state as { from?: string } | null;
-      navigate(state?.from ?? "/", { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (caught) {
       setError(userFacingError(caught));
     } finally {

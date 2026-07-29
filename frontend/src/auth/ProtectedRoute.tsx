@@ -8,7 +8,13 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const location = useLocation();
   if (!auth.initialized) return <AppLoading />;
   if (!auth.accessToken) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+      />
+    );
   }
   return children;
 }
