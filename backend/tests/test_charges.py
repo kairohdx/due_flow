@@ -70,9 +70,11 @@ def test_list_charge_filters_by_status_and_customer(
     paid_response = client.get("/charges?status=paid")
 
     assert pending_response.status_code == 200
-    assert [item["id"] for item in pending_response.json()] == [pending["id"]]
+    assert [item["id"] for item in pending_response.json()["items"]] == [
+        pending["id"]
+    ]
     assert paid_response.status_code == 200
-    assert [item["id"] for item in paid_response.json()] == [paid["id"]]
+    assert [item["id"] for item in paid_response.json()["items"]] == [paid["id"]]
 
 
 def test_update_pending_charge(client: TestClient, customer: dict) -> None:
@@ -150,3 +152,36 @@ def test_charge_not_found_returns_404(client: TestClient) -> None:
     assert response.status_code == 404
     assert response.json() == {"detail": "cobrança não encontrada"}
 
+
+def test_charge_list_filters_search_and_due_period(
+    client: TestClient,
+    customer: dict,
+) -> None:
+    included = client.post(
+        "/charges",
+        json=charge_payload(
+            customer["id"],
+            description="Contrato especial",
+            due_date="2026-08-10",
+        ),
+    ).json()
+    client.post(
+        "/charges",
+        json=charge_payload(
+            customer["id"],
+            description="Outra cobrança",
+            due_date="2026-09-10",
+        ),
+    )
+
+    response = client.get(
+        "/charges?search=especial&due_from=2026-08-01&due_to=2026-08-31"
+    )
+    invalid_range = client.get(
+        "/charges?due_from=2026-09-01&due_to=2026-08-01"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert response.json()["items"][0]["id"] == included["id"]
+    assert invalid_range.status_code == 422

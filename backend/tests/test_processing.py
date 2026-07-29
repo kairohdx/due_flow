@@ -78,6 +78,10 @@ def test_individual_processing_is_asynchronous_and_explainable(
     assert after.status_code == 200
     body = after.json()
     assert body["status"] == "completed"
+    assert body["origin"] == "manual"
+    assert body["charge_id"] == charge["id"]
+    assert body["terminal"] is True
+    assert body["duration_ms"] >= 0
     assert body["attempts"] == 1
     assert body["result"]["evaluated"] == 1
     assert body["result"]["eligible"] == 1
@@ -96,12 +100,21 @@ def test_individual_processing_is_asynchronous_and_explainable(
         f"/charges/{charge['id']}/notifications"
     )
     assert history.status_code == 200
-    attempts = history.json()
+    attempts = history.json()["items"]
     assert len(attempts) == 1
     assert attempts[0]["status"] == "simulated"
     assert attempts[0]["destination"] == "+5511999990000"
     assert attempts[0]["provider_response"]["request"]["to"] == "5511999990000"
     assert attempts[0]["provider_response"]["request"]["type"] == "text"
+    detail = client.get(f"/notifications/{attempts[0]['id']}")
+    filtered = client.get(
+        "/notifications?status=simulated&provider=fake"
+        "&notification_type=due_today"
+    )
+    assert detail.status_code == 200
+    assert detail.json()["id"] == attempts[0]["id"]
+    assert filtered.json()["total"] == 1
+    assert filtered.json()["items"][0]["id"] == attempts[0]["id"]
 
 
 def test_repeated_request_returns_same_active_job(
@@ -171,7 +184,7 @@ def test_notification_is_not_sent_twice(
     ).json()
     attempts = client.get(
         f"/charges/{charge['id']}/notifications"
-    ).json()
+    ).json()["items"]
 
     assert first["job_id"] != second["job_id"]
     assert second_job["result"]["simulated"] == 0
@@ -201,7 +214,7 @@ def test_skipped_decision_does_not_create_attempt(
     job = client.get(f"/processing/jobs/{accepted['job_id']}").json()
     attempts = client.get(
         f"/charges/{charge['id']}/notifications"
-    ).json()
+    ).json()["items"]
 
     assert job["result"]["skipped"] == 1
     assert job["result"]["evaluations"][0]["notification"] is None

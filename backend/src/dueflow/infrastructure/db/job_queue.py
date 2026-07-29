@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Select, case, select, update
+from sqlalchemy import Select, case, func, select, update
 from sqlalchemy.exc import IntegrityError
 
 from dueflow.application.job_queue import EnqueueResult
@@ -72,17 +72,21 @@ class DatabaseJobQueue:
         *,
         status: JobStatus | None,
         origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
         limit: int,
         offset: int,
     ) -> list[JobRecord]:
         with self.database.session() as session:
-            statement = select(ProcessingJob)
-            if status is not None:
-                statement = statement.where(ProcessingJob.status == status)
-            if origin is not None:
-                statement = statement.where(
-                    ProcessingJob.payload["origin"].as_string() == origin
-                )
+            statement = self._filtered_statement(
+                select(ProcessingJob),
+                status=status,
+                origin=origin,
+                job_type=job_type,
+                created_from=created_from,
+                created_to=created_to,
+            )
             statement = (
                 statement.order_by(
                     ProcessingJob.created_at.desc(),
@@ -95,6 +99,54 @@ class DatabaseJobQueue:
                 self._record(job)
                 for job in session.scalars(statement)
             ]
+
+    def count(
+        self,
+        *,
+        status: JobStatus | None,
+        origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> int:
+        with self.database.session() as session:
+            statement = self._filtered_statement(
+                select(func.count()).select_from(ProcessingJob),
+                status=status,
+                origin=origin,
+                job_type=job_type,
+                created_from=created_from,
+                created_to=created_to,
+            )
+            return int(session.scalar(statement) or 0)
+
+    @staticmethod
+    def _filtered_statement(
+        statement,
+        *,
+        status: JobStatus | None,
+        origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ):
+        if status is not None:
+            statement = statement.where(ProcessingJob.status == status)
+        if origin is not None:
+            statement = statement.where(
+                ProcessingJob.payload["origin"].as_string() == origin
+            )
+        if job_type is not None:
+            statement = statement.where(ProcessingJob.type == job_type)
+        if created_from is not None:
+            statement = statement.where(
+                ProcessingJob.created_at >= created_from
+            )
+        if created_to is not None:
+            statement = statement.where(
+                ProcessingJob.created_at <= created_to
+            )
+        return statement
 
     def claim(self, *, worker_id: str, now: datetime) -> JobRecord | None:
         with self.database.session() as session:

@@ -48,14 +48,37 @@ class ChargeService:
         *,
         status: ChargeStatus | None,
         customer_id: UUID | None,
+        due_from: date | None,
+        due_to: date | None,
+        search: str | None,
         limit: int,
         offset: int,
     ) -> list[Charge]:
         return self.repository.list(
             status=status,
             customer_id=customer_id,
+            due_from=due_from,
+            due_to=due_to,
+            search=search,
             limit=limit,
             offset=offset,
+        )
+
+    def count(
+        self,
+        *,
+        status: ChargeStatus | None,
+        customer_id: UUID | None,
+        due_from: date | None,
+        due_to: date | None,
+        search: str | None,
+    ) -> int:
+        return self.repository.count(
+            status=status,
+            customer_id=customer_id,
+            due_from=due_from,
+            due_to=due_to,
+            search=search,
         )
 
     def get(self, charge_id: UUID) -> Charge:

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -9,11 +10,13 @@ from dueflow.api.schemas.processing import (
     JobResponse,
     ProcessingRequest,
 )
+from dueflow.api.schemas.common import Page
+from dueflow.api.query_validation import validate_range
 from dueflow.application.processing import ProcessingService
 from dueflow.infrastructure.db.dependencies import get_session
 from dueflow.infrastructure.db.job_queue import DatabaseJobQueue
 from dueflow.infrastructure.db.repositories import ChargeRepository
-from dueflow.domain.jobs import JobStatus
+from dueflow.domain.jobs import JobStatus, JobType
 
 router = APIRouter(tags=["processing"])
 SessionDependency = Annotated[Session, Depends(get_session)]
@@ -89,23 +92,42 @@ def enqueue_charge_processing(
 
 @router.get(
     "/processing/jobs",
-    response_model=list[JobResponse],
+    response_model=Page[JobResponse],
 )
 def list_processing_jobs(
     session: SessionDependency,
     request: Request,
     job_status: Annotated[JobStatus | None, Query(alias="status")] = None,
     origin: Literal["manual", "automatic"] | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> list[JobResponse]:
-    jobs = service(session, request).list_jobs(
+    job_type: Annotated[JobType | None, Query(alias="type")] = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=25)] = 25,
+) -> Page[JobResponse]:
+    validate_range(created_from, created_to)
+    target = service(session, request)
+    jobs = target.list_jobs(
         status=job_status,
         origin=origin,
-        limit=limit,
-        offset=offset,
+        job_type=job_type,
+        created_from=created_from,
+        created_to=created_to,
+        limit=page_size,
+        offset=(page - 1) * page_size,
     )
-    return [JobResponse.model_validate(job) for job in jobs]
+    return Page[JobResponse].create(
+        items=[JobResponse.from_record(job) for job in jobs],
+        page=page,
+        page_size=page_size,
+        total=target.count_jobs(
+            status=job_status,
+            origin=origin,
+            job_type=job_type,
+            created_from=created_from,
+            created_to=created_to,
+        ),
+    )
 
 
 @router.get(
@@ -118,4 +140,4 @@ def get_processing_job(
     request: Request,
 ) -> JobResponse:
     job = service(session, request).get_job(job_id)
-    return JobResponse.model_validate(job)
+    return JobResponse.from_record(job)

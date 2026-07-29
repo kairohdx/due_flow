@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -110,10 +110,18 @@ class NotificationAttemptRepository:
             )
         )
 
+    def get(self, attempt_id: UUID) -> NotificationAttempt | None:
+        return self.session.get(NotificationAttempt, attempt_id)
+
     def list(
         self,
         *,
         charge_id: UUID | None,
+        status: NotificationAttemptStatus | None,
+        provider: NotificationProvider | None,
+        notification_type: NotificationType | None,
+        processed_from: datetime | None,
+        processed_to: datetime | None,
         limit: int,
         offset: int,
     ) -> list[NotificationAttempt]:
@@ -122,6 +130,14 @@ class NotificationAttemptRepository:
             statement = statement.where(
                 NotificationAttempt.charge_id == charge_id
             )
+        statement = self._apply_filters(
+            statement,
+            status=status,
+            provider=provider,
+            notification_type=notification_type,
+            processed_from=processed_from,
+            processed_to=processed_to,
+        )
         statement = (
             statement.order_by(
                 NotificationAttempt.processed_at.desc(),
@@ -132,3 +148,55 @@ class NotificationAttemptRepository:
         )
         return list(self.session.scalars(statement))
 
+    def count(
+        self,
+        *,
+        charge_id: UUID | None,
+        status: NotificationAttemptStatus | None,
+        provider: NotificationProvider | None,
+        notification_type: NotificationType | None,
+        processed_from: datetime | None,
+        processed_to: datetime | None,
+    ) -> int:
+        statement = select(func.count()).select_from(NotificationAttempt)
+        if charge_id is not None:
+            statement = statement.where(
+                NotificationAttempt.charge_id == charge_id
+            )
+        statement = self._apply_filters(
+            statement,
+            status=status,
+            provider=provider,
+            notification_type=notification_type,
+            processed_from=processed_from,
+            processed_to=processed_to,
+        )
+        return int(self.session.scalar(statement) or 0)
+
+    @staticmethod
+    def _apply_filters(
+        statement,
+        *,
+        status: NotificationAttemptStatus | None,
+        provider: NotificationProvider | None,
+        notification_type: NotificationType | None,
+        processed_from: datetime | None,
+        processed_to: datetime | None,
+    ):
+        if status is not None:
+            statement = statement.where(NotificationAttempt.status == status)
+        if provider is not None:
+            statement = statement.where(NotificationAttempt.provider == provider)
+        if notification_type is not None:
+            statement = statement.where(
+                NotificationAttempt.notification_type == notification_type
+            )
+        if processed_from is not None:
+            statement = statement.where(
+                NotificationAttempt.processed_at >= processed_from
+            )
+        if processed_to is not None:
+            statement = statement.where(
+                NotificationAttempt.processed_at <= processed_to
+            )
+        return statement

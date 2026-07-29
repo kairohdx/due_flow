@@ -13,8 +13,23 @@ class CustomerService:
         customer = Customer(name=name, phone=phone, active=active)
         return self.repository.add(customer)
 
-    def list(self, *, limit: int, offset: int) -> list[Customer]:
-        return self.repository.list(limit=limit, offset=offset)
+    def list(
+        self,
+        *,
+        active: bool | None,
+        search: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[Customer]:
+        return self.repository.list(
+            active=active,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+
+    def count(self, *, active: bool | None, search: str | None) -> int:
+        return self.repository.count(active=active, search=search)
 
     def get(self, customer_id: UUID) -> Customer:
         customer = self.repository.get(customer_id)
@@ -35,4 +50,3 @@ class CustomerService:
         customer.phone = phone
         customer.active = active
         return self.repository.save(customer)
-

@@ -37,7 +37,9 @@ def test_list_get_and_update_customer(
     )
 
     assert listed.status_code == 200
-    assert [item["id"] for item in listed.json()] == [customer_id]
+    assert [item["id"] for item in listed.json()["items"]] == [customer_id]
+    assert listed.json()["page_size"] == 25
+    assert listed.json()["total"] == 1
     assert fetched.status_code == 200
     assert fetched.json()["phone"] == "+5511999990000"
     assert updated.status_code == 200
@@ -67,7 +69,42 @@ def test_customer_not_found_returns_404(client: TestClient) -> None:
 
 
 def test_customer_pagination_is_validated(client: TestClient) -> None:
-    response = client.get("/customers?limit=101&offset=-1")
+    response = client.get("/customers?page=0&page_size=26")
 
     assert response.status_code == 422
 
+
+def test_customer_list_uses_server_pagination_and_filters(
+    client: TestClient,
+    customer: dict,
+) -> None:
+    for index in range(25):
+        created = client.post(
+            "/customers",
+            json={
+                "name": f"Cliente {index:02d}",
+                "phone": f"+55119888{index:04d}",
+                "active": index != 0,
+            },
+        )
+        assert created.status_code == 201
+
+    first = client.get("/customers")
+    second = client.get("/customers?page=2")
+    inactive = client.get("/customers?active=false&search=Cliente")
+
+    assert first.status_code == 200
+    assert len(first.json()["items"]) == 25
+    assert {
+        key: first.json()[key]
+        for key in ("page", "page_size", "total", "pages")
+    } == {
+        "page": 1,
+        "page_size": 25,
+        "total": 26,
+        "pages": 2,
+    }
+    assert len(second.json()["items"]) == 1
+    assert second.json()["page"] == 2
+    assert inactive.json()["total"] == 1
+    assert inactive.json()["items"][0]["name"] == "Cliente 00"
