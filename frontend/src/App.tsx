@@ -3,6 +3,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useAuthBootstrap } from "./auth/useAuthBootstrap";
 import { AppShell } from "./components/AppShell";
 import { FoundationPage } from "./pages/FoundationPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 
 export default function App() {
@@ -17,7 +18,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<FoundationPage type="dashboard" />} />
+        <Route index element={<DashboardPage />} />
         <Route path="clientes" element={<FoundationPage type="customers" />} />
         <Route path="cobrancas" element={<FoundationPage type="charges" />} />
         <Route path="fila" element={<FoundationPage type="jobs" />} />

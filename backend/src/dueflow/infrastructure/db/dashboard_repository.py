@@ -4,7 +4,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from dueflow.domain.jobs import JobStatus
-from dueflow.infrastructure.db.models import Customer, ProcessingJob
+from dueflow.domain.charges import ChargeStatus
+from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.infrastructure.db.models import (
+    Charge,
+    Customer,
+    NotificationAttempt,
+    ProcessingJob,
+)
 
 
 class DashboardRepository:
@@ -19,6 +26,54 @@ class DashboardRepository:
             select(func.count())
             .select_from(ProcessingJob)
             .where(ProcessingJob.status == status)
+        )
+
+    def pending_charges_total(self) -> int:
+        return self._count(
+            select(func.count())
+            .select_from(Charge)
+            .where(Charge.status == ChargeStatus.PENDING)
+        )
+
+    def completed_results_since(self, since: datetime) -> list[dict]:
+        statement = (
+            select(ProcessingJob.result)
+            .where(
+                ProcessingJob.status == JobStatus.COMPLETED,
+                ProcessingJob.finished_at >= since,
+                ProcessingJob.result.is_not(None),
+            )
+        )
+        return [
+            dict(result)
+            for result in self.session.scalars(statement)
+            if result is not None
+        ]
+
+    def processed_notifications_since(self, since: datetime) -> int:
+        return self._count(
+            select(func.count())
+            .select_from(NotificationAttempt)
+            .where(
+                NotificationAttempt.status.in_(
+                    [
+                        NotificationAttemptStatus.SENT,
+                        NotificationAttemptStatus.SIMULATED,
+                    ]
+                ),
+                NotificationAttempt.processed_at >= since,
+            )
+        )
+
+    def failed_notifications_since(self, since: datetime) -> int:
+        return self._count(
+            select(func.count())
+            .select_from(NotificationAttempt)
+            .where(
+                NotificationAttempt.status
+                == NotificationAttemptStatus.FAILED,
+                NotificationAttempt.processed_at >= since,
+            )
         )
 
     def completed_since(self, since: datetime) -> int:

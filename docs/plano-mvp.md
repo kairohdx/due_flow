@@ -425,7 +425,7 @@ A aplicação terá login e um shell autenticado com menu lateral, cabeçalho, u
 Telas previstas:
 
 - **Login:** e-mail, senha, feedback de credencial inválida e estado de carregamento.
-- **Visão geral:** cartões para clientes cadastrados, jobs na fila, processados nas últimas 24 horas, retries e falhas; estado da automação; botão **Processar agora**; atividade recente.
+- **Visão geral:** cartões para clientes cadastrados, cobranças pendentes, cobranças avaliadas, mensagens processadas, retries e falhas de notificação; estado da automação; botão **Processar agora**; atividade recente dos jobs.
 - **Clientes:** listagem paginada, criação e detalhe com edição e cobranças relacionadas.
 - **Cobranças:** listagem paginada com filtros, criação e detalhe com ações pagar, cancelar e processar.
 - **Fila:** listagem paginada dos jobs, origem manual/automática, status, tentativas e horários.
@@ -437,10 +437,13 @@ O dashboard consulta `/dashboard/summary` a cada 10 segundos. A fila consulta a 
 Os números devem ter definições visíveis e estáveis:
 
 - `customers_total`: clientes cadastrados;
-- `jobs_queued` e `jobs_processing`: itens aguardando ou em execução;
-- `jobs_completed_last_24h`: jobs concluídos nas 24 horas anteriores ao instante da consulta;
+- `charges_pending`: cobranças de negócio ainda pendentes;
+- `charges_evaluated_last_24h`: soma de cobranças avaliadas pelos jobs concluídos na janela;
+- `notifications_processed_last_24h`: tentativas enviadas ou simuladas na janela;
 - `job_retries_last_24h`: jobs executados novamente, identificados por `attempts > 1`, no mesmo período;
-- `jobs_failed_last_24h`: jobs que terminaram em falha no mesmo período.
+- `notification_failures_last_24h`: tentativas de notificação que falharam na janela.
+
+As contagens `jobs_queued`, `jobs_processing`, `jobs_completed_last_24h` e `jobs_failed_last_24h` permanecem no contrato para diagnóstico operacional, mas não ocupam os cards principais. Um job em lote pode avaliar muitas cobranças; apresentar o número de jobs como “itens processados” distorceria o trabalho de negócio.
 
 Como complementos úteis sem transformar o MVP em BI: exibir “atualizado há X segundos”, permitir atualização manual, manter filtros/página na URL, usar estados vazios acionáveis e mostrar horários na timezone configurada. Gráficos, websocket, design system completo e edição visual de policies continuam fora.
 
@@ -654,14 +657,14 @@ Cada etapa termina com uma verificação executável.
 
 **Pronto quando:** a aplicação abre no login, mantém o usuário conectado com segurança e navega pelo shell autenticado. Validado em 29/07/2026 com lint, 5 testes de frontend e build de produção; o shell responsivo e a identidade visual própria do DueFlow estão preparados para as telas funcionais.
 
-#### Etapa 7.4 — Dashboard operacional
+#### Etapa 7.4 — Dashboard operacional — concluída
 
-- criar cartões para clientes, fila, processados em 24 horas, retries e falhas;
-- exibir estado da automação e ações habilitar, pausar e processar agora;
-- mostrar atividade recente, instante da última atualização e polling de 10 segundos;
-- pausar polling com aba oculta e atualizar ao recuperar foco.
+- [x] criar cartões para clientes, cobranças pendentes, avaliadas em 24 horas, mensagens processadas, retries e falhas de notificação;
+- [x] exibir estado da automação e ações habilitar, pausar e processar agora;
+- [x] mostrar atividade recente, instante da última atualização e polling de 10 segundos;
+- [x] pausar polling com aba oculta e atualizar ao recuperar foco.
 
-**Pronto quando:** a tela inicial permite perceber a automação funcionando sem atualizar o navegador manualmente.
+**Pronto quando:** a tela inicial permite perceber a automação funcionando sem atualizar o navegador manualmente. Validado em 29/07/2026 com 8 testes de frontend, polling de 10 segundos no painel, acompanhamento de job a cada 2 segundos até estado terminal, lint e build de produção.
 
 #### Etapa 7.5 — Clientes
 
@@ -780,4 +783,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.4 — Dashboard operacional**: conectar métricas, estado da automação, ação de processamento e polling inteligente à tela inicial já estruturada.
+Iniciar a **Etapa 7.5 — Clientes**: conectar listagem paginada, busca, criação, detalhe, edição e cobranças relacionadas ao shell já implementado.
