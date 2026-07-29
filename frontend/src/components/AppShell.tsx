@@ -48,7 +48,11 @@ export function AppShell() {
     .toUpperCase();
   const currentTitle =
     routeTitles[location.pathname] ??
-    (location.pathname.startsWith("/clientes") ? "Clientes" : "DueFlow");
+    (location.pathname.startsWith("/clientes")
+      ? "Clientes"
+      : location.pathname.startsWith("/cobrancas")
+        ? "Cobranças"
+        : "DueFlow");
 
   return (
     <div className={`app-shell ${menuOpen ? "menu-open" : ""}`}>

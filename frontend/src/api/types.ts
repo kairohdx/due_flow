@@ -71,3 +71,11 @@ export interface Charge {
   created_at: string;
   updated_at: string;
 }
+
+export interface ChargePayload {
+  customer_id: string;
+  description: string;
+  amount: string;
+  due_date: string;
+  reminder_days_before: number;
+}
