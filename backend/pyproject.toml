@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dueflow"
+version = "0.1.0"
+description = "Agenda de cobranças com lembretes pelo WhatsApp."
+readme = {text = "Backend da agenda de cobranças DueFlow.", content-type = "text/markdown"}
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "alembic>=1.14,<2",
+    "fastapi>=0.115,<1",
+    "policyflow-engine @ git+https://github.com/kairohdx/policy_flow.git@f86141837ae62a01d074e06fe1bd76b22fcc6153",
+    "pydantic-settings>=2.7,<3",
+    "sqlalchemy>=2.0,<3",
+    "tzdata>=2024.1",
+    "uvicorn[standard]>=0.34,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx2>=2,<3",
+    "pytest>=8,<10",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-q --basetemp=.test-tmp"
+testpaths = ["tests"]
