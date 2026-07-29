@@ -707,12 +707,12 @@ Cada etapa termina com uma verificação executável.
 - [x] transformar o indicador lateral da automação em estado real e atalho para configurações;
 - [x] implementar configurações de conta, intervalo e ativação da automação;
 - [x] permitir troca autenticada de senha com revogação das sessões;
-- tratar loading, estados vazios, erros, confirmações e responsividade;
-- manter paginação e filtros na URL;
-- cobrir login, sessão, polling e roteiro principal com testes de frontend e ponta a ponta;
-- validar acessibilidade básica por teclado e contraste.
+- [x] tratar loading, estados vazios, erros, confirmações e responsividade;
+- [x] manter paginação e filtros na URL;
+- [x] cobrir login, sessão, polling e roteiro principal com testes de frontend e ponta a ponta;
+- [x] validar acessibilidade básica por teclado e contraste.
 
-**Pronto quando:** o roteiro principal funciona de modo previsível sem Swagger ou comandos manuais.
+**Pronto quando:** o roteiro principal funciona de modo previsível sem Swagger ou comandos manuais. Validado em 29/07/2026 com tratamento consistente de estados, retorno à URL protegida após login, polling em aba ativa, navegação por teclado, diálogo acessível, atalhos funcionais, roteiro documentado, 26 testes de frontend, lint e build de produção.
 
 ### Etapa 8 — WhatsApp real
 
@@ -789,4 +789,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.9 — Qualidade da experiência e roteiro**: revisar estados, responsividade, acessibilidade e cobrir o roteiro principal ponta a ponta.
+Iniciar a **Etapa 8 — WhatsApp real**: implementar o provider Meta mantendo o provider simulado como fallback seguro.

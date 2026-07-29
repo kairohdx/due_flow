@@ -4,6 +4,7 @@ import { userFacingError } from "../api/errors";
 import type { AutomationState } from "../api/dashboard";
 import { clearAuthState, useAuthState } from "../auth/authStore";
 import { Skeleton } from "../components/feedback/Skeleton";
+import { ErrorState } from "../components/feedback/ErrorState";
 import { Button } from "../components/ui/Button";
 import { Icon } from "../components/ui/Icon";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -75,6 +76,11 @@ function AutomationSettingsForm({
         <div><dt>Próxima verificação</dt><dd>{state.enabled ? formatDateTime(state.next_run_at) : "Pausada"}</dd></div>
       </dl>
       {error ? <div className="form-error" role="alert">{userFacingError(error)}</div> : null}
+      {settings.configure.isSuccess && !error ? (
+        <div className="feedback-banner feedback-success" role="status">
+          Intervalo atualizado.
+        </div>
+      ) : null}
       <Button
         disabled={pending}
         icon={<Icon name={state.enabled ? "pause" : "play"} />}
@@ -196,6 +202,11 @@ export function SettingsPage() {
               key={settings.automation.data.updated_at}
               settings={settings}
               state={settings.automation.data}
+            />
+          ) : settings.automation.error ? (
+            <ErrorState
+              error={settings.automation.error}
+              onRetry={() => void settings.automation.refetch()}
             />
           ) : (
             <Skeleton lines={6} />

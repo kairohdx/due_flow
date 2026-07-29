@@ -92,7 +92,10 @@ export function ExecutionsPage() {
         title="Execuções da automação"
         description="Acompanhe a fila, tentativas e resultados técnicos de cada verificação."
         actions={
-          <div className={`polling-indicator ${hasActive ? "polling-active" : ""}`}>
+          <div
+            aria-live="polite"
+            className={`polling-indicator ${hasActive ? "polling-active" : ""}`}
+          >
             <i />
             {hasActive ? "Atualizando a cada 2s" : "Fila estável"}
           </div>
