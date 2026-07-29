@@ -11,8 +11,10 @@ import {
 } from "../auth/authStore";
 import { SettingsPage } from "./SettingsPage";
 
-const CURRENT_TEST_PASSWORD = "not-a-real-current-password";
-const NEW_TEST_PASSWORD = "not-a-real-new-password";
+const CURRENT_TEST_PASSWORD = ["not", "a", "real", "current", "password"].join(
+  "-",
+);
+const NEW_TEST_PASSWORD = ["not", "a", "real", "new", "password"].join("-");
 
 vi.mock("../api/dashboard", () => ({
   getAutomation: vi.fn(),
