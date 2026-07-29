@@ -54,7 +54,7 @@ Quando o deploy terminar:
 
 O primeiro acesso após o serviço dormir pode levar cerca de um minuto.
 
-## 5. Template da Meta
+## 5. Integração com a Meta
 
 O deploy começa com:
 
@@ -65,9 +65,16 @@ META_TEMPLATE_NAME=dueflow_aviso_cobranca_v1
 META_TEMPLATE_LANGUAGE=pt_BR
 ```
 
-Somente depois da aprovação do template, altere `MESSAGE_PROVIDER` para `meta` e
-cadastre também token, Phone Number ID, versão da Graph API, Verify Token e App
-Secret como segredos do Render.
+O provider real pode ser habilitado antes da aprovação do template para testar
+texto livre dentro de uma janela de atendimento válida. Altere
+`MESSAGE_PROVIDER` para `meta` e cadastre token, Phone Number ID, versão da Graph
+API, Verify Token e App Secret como segredos do Render.
+
+O envio de texto livre foi validado localmente e no Render em 29/07/2026, com
+recebimento no celular e acompanhamento dos estados pelo webhook. Mantenha
+`META_TEMPLATE_MODE=retry_only` durante a demonstração. O envio externo com
+template continua pendente até a aprovação de `dueflow_aviso_cobranca_v1` pela
+Meta.
 
 ## Execução local equivalente
 

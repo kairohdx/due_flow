@@ -2,7 +2,10 @@
 
 Este roteiro valida o fluxo principal exclusivamente pelo painel, depois que API,
 worker e frontend estiverem em execução e o usuário administrador tiver sido criado.
-O provider deve permanecer como `fake` durante a demonstração.
+O fluxo principal pode permanecer no provider `fake` para ser determinístico.
+Como evidência adicional, o provider `meta` já foi validado localmente e no
+Render com uma mensagem de texto livre recebida no celular. O único teste externo
+pendente é o envio com template aprovado.
 
 ## Preparação
 

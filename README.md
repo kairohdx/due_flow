@@ -354,7 +354,9 @@ O template esperado possui quatro parâmetros de corpo, nesta ordem:
 O modo fake gera o mesmo payload de template, marca a tentativa como simulada e
 percorre o fluxo assíncrono de entrega. Nome, idioma, parâmetros e conteúdo
 renderizado ficam disponíveis no detalhe da mensagem mesmo quando a submissão
-falha. O envio real permanece pendente até a aprovação do template configurado.
+falha. O envio real de texto livre foi validado localmente e no Render em
+29/07/2026, incluindo o recebimento no celular e os eventos do webhook. Permanece
+pendente somente a validação externa do template configurado.
 
 ### Webhook de entrega
 

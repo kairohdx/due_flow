@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { userFacingError } from "../../api/errors";
 import type { CustomerPayload } from "../../api/types";
+import {
+  maskBrazilianPhone,
+  normalizeBrazilianPhone,
+} from "../../lib/format";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 
@@ -20,12 +24,18 @@ export function CustomerForm({
   onCancel: () => void;
 }) {
   const [name, setName] = useState(initialValue?.name ?? "");
-  const [phone, setPhone] = useState(initialValue?.phone ?? "");
+  const [phone, setPhone] = useState(
+    maskBrazilianPhone(initialValue?.phone ?? ""),
+  );
   const [active, setActive] = useState(initialValue?.active ?? true);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit({ name: name.trim(), phone: phone.trim(), active });
+    onSubmit({
+      name: name.trim(),
+      phone: normalizeBrazilianPhone(phone),
+      active,
+    });
   }
 
   return (
@@ -50,9 +60,14 @@ export function CustomerForm({
             aria-label="WhatsApp"
             autoComplete="tel"
             inputMode="tel"
-            onChange={(event) => setPhone(event.target.value)}
+            maxLength={20}
+            onChange={(event) =>
+              setPhone(maskBrazilianPhone(event.target.value))
+            }
+            pattern="\+55 \(\d{2}\) \d{4,5}-\d{4}\s?"
             placeholder="+55 (11) 99999-0000"
             required
+            title="Informe o DDD e um telefone com 8 ou 9 dígitos."
             value={phone}
           />
           <small>Inclua o código do país. O número será normalizado pela API.</small>
