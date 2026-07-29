@@ -53,12 +53,11 @@ A requisição e a resposta seguras são persistidas em `NotificationAttempt.pro
 - O fake não simula latência, webhook de entrega ou leitura.
 - O fake não valida se o número existe no WhatsApp.
 - Falhas podem ser exercitadas por um provider de teste injetado.
-- `MESSAGE_PROVIDER=meta` continuará indisponível até a etapa da integração real.
+- `MESSAGE_PROVIDER=meta` é implementado na Etapa 8 e selecionado somente por ambiente.
 
 ## Consequências
 
 - A demonstração mostra um resultado próximo ao contrato real sem depender da rede.
 - O worker e o serviço de notificação não precisarão mudar ao introduzir a Meta.
-- O provider real deverá traduzir HTTP e respostas da Graph API para o mesmo `ProviderResult`.
+- O provider real traduz HTTP e respostas da Graph API para o mesmo `ProviderResult`.
 - O histórico permite comparar payload, status e identificador do provider.
-

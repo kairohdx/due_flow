@@ -3,6 +3,7 @@ from datetime import timedelta
 from dueflow.application.worker import Worker
 from dueflow.domain.messaging import NotificationProvider
 from dueflow.infrastructure.db.job_queue import DatabaseJobQueue
+from dueflow.infrastructure.messaging.meta import MetaWhatsAppError
 
 
 class FailingProvider:
@@ -16,6 +17,22 @@ class FailingProvider:
         correlation_id: str,
     ):
         raise RuntimeError("falha controlada do provider")
+
+
+class UncertainMetaProvider:
+    name = NotificationProvider.META
+
+    def send_text(
+        self,
+        to: str,
+        body: str,
+        *,
+        correlation_id: str,
+    ):
+        raise MetaWhatsAppError(
+            "timeout ao comunicar com a API da Meta",
+            outcome_unknown=True,
+        )
 
 
 def create_charge(client, customer_id: str) -> dict:
@@ -67,7 +84,47 @@ def test_provider_failure_is_persisted_without_changing_charge(
     assert job["status"] == "completed"
     assert job["result"]["notification_failed"] == 1
     attempt = attempts["items"][0]
-    assert attempt["status"] == "failed"
-    assert "falha controlada do provider" in attempt["error"]
+    assert attempt["submission_status"] == "failed"
+    assert (
+        "falha controlada do provider"
+        in attempt["submission_error_details"]
+    )
+
+
+def uncertain_worker(database) -> Worker:
+    return Worker(
+        database=database,
+        queue=DatabaseJobQueue(database),
+        provider=UncertainMetaProvider(),
+        worker_id="uncertain-worker",
+        timezone="America/Sao_Paulo",
+        poll_interval_seconds=0.01,
+        lock_ttl=timedelta(minutes=5),
+    )
     assert attempt["provider_response"] is None
     assert current_charge["status"] == "pending"
+
+
+def test_timeout_is_persisted_as_unknown_without_starting_delivery(
+    client,
+    database,
+    customer,
+) -> None:
+    charge = create_charge(client, customer["id"])
+    accepted = client.post(
+        f"/charges/{charge['id']}/process",
+        json={"reference_date": "2026-07-29"},
+    ).json()
+
+    uncertain_worker(database).run_once()
+
+    attempt = client.get(
+        f"/charges/{charge['id']}/notifications"
+    ).json()["items"][0]
+    summary = client.get("/dashboard/summary").json()
+
+    assert attempt["submission_status"] == "unknown"
+    assert attempt["delivery_status"] == "not_started"
+    assert attempt["provider_message_id"] is None
+    assert attempt["submission_error_info"]["known"] is False
+    assert summary["submissions_unknown_last_24h"] == 1

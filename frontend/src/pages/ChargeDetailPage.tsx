@@ -17,10 +17,46 @@ import {
   useUpdateCharge,
 } from "../hooks/useCharges";
 import { useCustomer } from "../hooks/useCustomers";
+import {
+  useChargeNotifications,
+  useNotificationRetry,
+} from "../hooks/useNotifications";
 import { chargeDeadlineState, chargeStatusMeta } from "../lib/charges";
 import { formatCurrency, formatDate, formatDateTime } from "../lib/format";
+import {
+  notificationProviderLabel,
+  notificationResultMeta,
+  notificationTypeLabel,
+} from "../lib/notifications";
 
 type Action = "paid" | "cancel" | "process" | null;
+
+function ChargeRetryAction({ attemptId }: { attemptId: string }) {
+  const retryFlow = useNotificationRetry(attemptId);
+  if (
+    !retryFlow.recovery.data?.eligible &&
+    !retryFlow.recovery.data?.template_eligible
+  ) return null;
+  const withTemplate = retryFlow.recovery.data.template_eligible;
+  return (
+    <Button
+      variant="secondary"
+      icon={<Icon name="refresh" />}
+      loading={
+        retryFlow.retry.isPending ||
+        retryFlow.retryTemplate.isPending ||
+        Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)
+      }
+      onClick={() =>
+        withTemplate
+          ? retryFlow.retryTemplate.mutate()
+          : retryFlow.retry.mutate()
+      }
+    >
+      {withTemplate ? "Reenviar com template" : "Tentar novamente"}
+    </Button>
+  );
+}
 
 export function ChargeDetailPage() {
   const { chargeId = "" } = useParams();
@@ -33,6 +69,7 @@ export function ChargeDetailPage() {
   const markPaid = useMarkChargePaid(chargeId);
   const cancel = useCancelCharge(chargeId);
   const process = useProcessCharge(chargeId);
+  const notifications = useChargeNotifications(chargeId);
 
   if (charge.isLoading) return <div className="page-stack"><Skeleton lines={8} /></div>;
   if (charge.error || !charge.data) {
@@ -190,6 +227,73 @@ export function ChargeDetailPage() {
               <span className="detail-icon"><Icon name="bell" /></span>
               <div><small>Antecedência</small><strong>{data.reminder_days_before} dias</strong></div>
             </article>
+          </section>
+          <section className="surface-card charge-notifications-card">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Rastreabilidade</span>
+                <h2>Histórico de envios</h2>
+              </div>
+              <Link className="text-link" to={`/notificacoes`}>
+                Ver histórico completo <Icon name="arrow-right" />
+              </Link>
+            </div>
+            {notifications.isLoading ? <Skeleton lines={3} /> : null}
+            {notifications.error && !notifications.data ? (
+              <ErrorState
+                error={notifications.error}
+                onRetry={() => void notifications.refetch()}
+              />
+            ) : null}
+            {notifications.data?.total === 0 ? (
+              <div className="charge-notifications-empty">
+                <Icon name="message" />
+                <div>
+                  <strong>Nenhum envio registrado</strong>
+                  <small>
+                    Quando esta cobrança gerar uma mensagem, o resultado
+                    aparecerá aqui.
+                  </small>
+                </div>
+              </div>
+            ) : null}
+            {notifications.data?.items.length ? (
+              <div className="charge-notifications-list">
+                {notifications.data.items.map((attempt) => {
+                  const attemptStatus = notificationResultMeta(attempt);
+                  return (
+                    <div className="charge-notification-item" key={attempt.id}>
+                      <Link
+                        className="charge-notification-row"
+                        to={`/notificacoes/${attempt.id}`}
+                      >
+                        <span
+                          className={`provider-mark provider-${attempt.provider}`}
+                        >
+                          <Icon
+                            name={attempt.provider === "meta" ? "message" : "sparkles"}
+                          />
+                        </span>
+                        <div>
+                          <strong>
+                            {notificationTypeLabel[attempt.notification_type]}
+                          </strong>
+                          <small>
+                            {notificationProviderLabel[attempt.provider]} ·{" "}
+                            {formatDateTime(attempt.processed_at)}
+                          </small>
+                        </div>
+                        <StatusBadge tone={attemptStatus.tone}>
+                          {attemptStatus.label}
+                        </StatusBadge>
+                        <Icon name="arrow-right" />
+                      </Link>
+                      <ChargeRetryAction attemptId={attempt.id} />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
           </section>
           {pending ? (
             <section className="surface-card resolution-card">

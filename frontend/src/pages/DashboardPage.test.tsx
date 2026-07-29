@@ -55,8 +55,14 @@ function configureApi() {
     charges_due_today: 2,
     charges_due_next_7_days: 4,
     charges_evaluated_last_24h: 27,
-    notifications_processed_last_24h: 12,
-    notification_failures_last_24h: 1,
+    submissions_succeeded_last_24h: 12,
+    submissions_simulated_last_24h: 5,
+    submissions_failed_last_24h: 1,
+    submissions_unknown_last_24h: 0,
+    deliveries_confirmed_last_24h: 10,
+    deliveries_read_last_24h: 4,
+    deliveries_failed_last_24h: 1,
+    deliveries_awaiting: 1,
     jobs_queued: 2,
     jobs_processing: 1,
     jobs_completed_last_24h: 12,
@@ -128,8 +134,8 @@ it("apresenta métricas, automação e atividade recente", async () => {
   expect(screen.getAllByText("Cobranças vencidas")).toHaveLength(2);
   expect(screen.getAllByText("Vencem hoje")).toHaveLength(2);
   expect(screen.getByText("Vencem em até 7 dias")).toBeInTheDocument();
-  expect(screen.getByText("Lembretes enviados")).toBeInTheDocument();
-  expect(screen.getByText("Falhas no envio")).toBeInTheDocument();
+  expect(screen.getByText("Envios aceitos pela Meta")).toBeInTheDocument();
+  expect(screen.getByText("Falhas ao enviar para a Meta")).toBeInTheDocument();
   expect(screen.getByText("Atenção necessária")).toBeInTheDocument();
   expect(screen.queryByText("Retries")).not.toBeInTheDocument();
   expect(screen.queryByText("Processamento manual")).not.toBeInTheDocument();

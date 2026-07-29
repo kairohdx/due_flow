@@ -35,7 +35,10 @@ A troca revoga todas as sessões abertas desse usuário.
 
 ## Autenticação
 
-Somente `/health`, `/auth/login` e `/auth/refresh` são públicos. As demais rotas exigem `Authorization: Bearer <access_token>`.
+Somente `/health`, `/auth/login`, `/auth/refresh` e os webhooks da Meta são
+públicos. A verificação do webhook usa um token próprio e o recebimento de
+eventos exige uma assinatura HMAC válida. As demais rotas exigem
+`Authorization: Bearer <access_token>`.
 
 ```text
 POST /auth/login
@@ -239,6 +242,22 @@ Ao habilitar, o primeiro job é criado no próximo ciclo curto do worker; as exe
 
 O `FakeWhatsAppProvider` usa o mesmo contrato textual planejado para a API da Meta. Ele monta um payload com `messaging_product`, destinatário, tipo e corpo, mas não realiza chamada externa. A resposta simulada contém um identificador `wamid.fake.*`.
 
+O aceite simulado deixa a entrega como `pending`. Nos ciclos seguintes, o
+worker produz eventos fictícios separados, usando os mesmos estados, métricas,
+polling e timeline do fluxo real:
+
+```dotenv
+FAKE_DELIVERY_OUTCOME=delivered
+FAKE_DELIVERY_DELAY_SECONDS=2
+FAKE_DELIVERY_ERROR_CODE=131047
+```
+
+`FAKE_DELIVERY_OUTCOME` aceita `delivered`, `read` ou `failed`. O cenário
+`delivered` percorre `pending → sent → delivered`; `read` acrescenta `read`; e
+`failed` percorre `pending → sent → failed` usando o código configurado. Cada
+transição ocorre em um ciclo diferente do worker e é marcada como simulada na
+auditoria. Nenhuma chamada é feita à Meta nem ao endpoint público de webhook.
+
 As tentativas ficam disponíveis em:
 
 ```text
@@ -248,6 +267,138 @@ GET /charges/{id}/notifications
 ```
 
 Uma chave formada por cobrança, vencimento e tipo de notificação impede o envio repetido. Cobranças não elegíveis aparecem no trace do job, mas não geram `NotificationAttempt`.
+
+Falhas confirmadas e classificadas como retentáveis podem ser avaliadas e
+reenviadas manualmente:
+
+```text
+GET  /notifications/{id}/recovery
+POST /notifications/{id}/retry
+GET  /notifications/{id}/attempts
+```
+
+O reenvio é assíncrono e retorna um job `retry_notification`. O worker revalida
+a cobrança, o cliente e os estados de envio e entrega antes de agir. Resultado
+incerto, mensagem em trânsito, entrega concluída e erro que exige template,
+correção ou análise não liberam o botão **Tentar novamente**. Cada reenvio cria
+uma tentativa numerada, preserva a falha anterior e registra a tentativa de
+origem e o usuário solicitante.
+
+## Provider Meta
+
+O worker também pode enviar mensagens de texto pela API oficial do WhatsApp
+Cloud. O modo real é habilitado apenas por ambiente e exige todas as
+configurações abaixo:
+
+```dotenv
+MESSAGE_PROVIDER=meta
+META_WHATSAPP_TOKEN=
+META_WHATSAPP_PHONE_NUMBER_ID=
+META_GRAPH_API_VERSION=
+META_GRAPH_API_BASE_URL=https://graph.facebook.com
+META_REQUEST_TIMEOUT_SECONDS=10
+META_WEBHOOK_VERIFY_TOKEN=
+META_APP_SECRET=
+META_TEMPLATE_MODE=retry_only
+META_TEMPLATE_NAME=dueflow_aviso_cobranca_v1
+META_TEMPLATE_LANGUAGE=pt_BR
+```
+
+`META_GRAPH_API_VERSION` deve ser preenchida explicitamente com a versão
+habilitada na aplicação da Meta, no formato `vNN.N`. O projeto não fixa uma
+versão silenciosamente para evitar que uma atualização da Graph API altere o
+comportamento sem revisão.
+
+Antes de iniciar o worker, é possível fazer um envio deliberado para um
+destinatário autorizado:
+
+```powershell
+cd backend
+python -m dueflow.cli test-meta --to +5511999999999
+```
+
+O comando não é executado pela suíte e mascara o telefone na saída. Tokens,
+headers de autorização, telefones presentes na resposta e respostas brutas de
+erro não são persistidos. Timeout, falha de rede, resposta inválida e erros
+HTTP são convertidos em mensagens seguras e auditáveis.
+
+O detalhe de cada cobrança apresenta seu **Histórico de envios** com provider e
+resultado. Ao abrir uma tentativa, o painel informa claramente se o envio foi
+simulado ou realizado pela Meta, mostra o status HTTP, o identificador devolvido
+pela Meta e a correlação. O JSON completo permanece disponível em **Dados
+técnicos sanitizados**.
+
+Para voltar ao modo de demonstração sem rede:
+
+```dotenv
+MESSAGE_PROVIDER=fake
+```
+
+Mensagens de texto livres dependem de uma conversa aberta na janela permitida
+pela Meta. Para iniciar conversas fora dessa janela, será necessário cadastrar
+e usar um template aprovado compatível com as mensagens do DueFlow.
+
+`META_TEMPLATE_MODE=retry_only` mantém texto livre como caminho normal e
+oferece **Reenviar com template** quando uma falha, como a `131047`, exigir uma
+nova conversa. Depois da demonstração, `META_TEMPLATE_MODE=always` transforma o
+mesmo template no formato padrão dos lembretes, sem alterar as policies ou os
+jobs.
+
+O template esperado possui quatro parâmetros de corpo, nesta ordem:
+
+1. nome do cliente;
+2. descrição da cobrança;
+3. valor em reais;
+4. vencimento em `dd/mm/aaaa`.
+
+O modo fake gera o mesmo payload de template, marca a tentativa como simulada e
+percorre o fluxo assíncrono de entrega. Nome, idioma, parâmetros e conteúdo
+renderizado ficam disponíveis no detalhe da mensagem mesmo quando a submissão
+falha. O envio real permanece pendente até a aprovação do template configurado.
+
+### Webhook de entrega
+
+Configure na Meta uma URL HTTPS pública apontando para:
+
+```text
+GET  /webhooks/meta
+POST /webhooks/meta
+```
+
+Use em `META_WEBHOOK_VERIFY_TOKEN` um valor aleatório exclusivo para a
+verificação da URL. `META_APP_SECRET` deve conter o App Secret da aplicação e é
+usado para validar `X-Hub-Signature-256` sobre o corpo bruto de cada evento.
+Esses valores não devem ser iguais ao token de acesso do WhatsApp.
+
+Depois de validar a URL, assine o campo `messages` da conta do WhatsApp
+Business. O DueFlow correlaciona `statuses` pelo `wamid` e mantém dois
+resultados independentes:
+
+- envio para a Meta: `pending`, `succeeded`, `failed`, `unknown` ou
+  `simulated`;
+- entrega no WhatsApp: `not_started`, `pending`, `sent`, `delivered`, `read`
+  ou `failed`.
+
+Timeout e falha de rede ficam como `unknown`, pois não comprovam se a Meta
+aceitou a solicitação. Um HTTP de sucesso registra apenas o aceite e nunca é
+apresentado como entrega confirmada.
+
+Eventos duplicados, desconhecidos ou regressivos são aceitos sem alterar o
+histórico. Em falhas, somente código, título, detalhes e metadados sanitizados
+necessários à auditoria são persistidos; o payload bruto e campos internos da
+Meta são descartados. O painel apresenta uma timeline com envio e entrega,
+traduz códigos conhecidos — incluindo o `131047` — e usa uma orientação
+genérica em português para códigos ainda não catalogados. Os detalhes técnicos
+sanitizados continuam disponíveis para diagnóstico.
+
+O endpoint retorna `503` enquanto os segredos do webhook não estiverem
+configurados. Para o teste externo, a API precisa estar acessível pela Meta por
+HTTPS; o painel atualiza automaticamente o estado enquanto a entrega ainda está
+pendente.
+
+Referências oficiais: [envio de mensagens pela Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages),
+[códigos de erro do WhatsApp](https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/)
+e [versionamento da Graph API](https://developers.facebook.com/docs/graph-api/changelog/versions).
 
 ## Visão geral e diagnóstico operacional
 

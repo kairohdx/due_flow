@@ -15,6 +15,7 @@ from dueflow.api.routes.dashboard import router as dashboard_router
 from dueflow.api.routes.health import router as health_router
 from dueflow.api.routes.notifications import router as notifications_router
 from dueflow.api.routes.processing import router as processing_router
+from dueflow.api.routes.webhooks import router as webhooks_router
 from dueflow.config import Settings, get_settings
 from dueflow.infrastructure.db.database import Database
 
@@ -45,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     register_error_handlers(app)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(webhooks_router)
     protected = [Depends(get_current_user)]
     app.include_router(customers_router, dependencies=protected)
     app.include_router(charges_router, dependencies=protected)

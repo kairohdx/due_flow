@@ -9,6 +9,11 @@ from dueflow.application.auth import (
 from dueflow.config import get_settings
 from dueflow.infrastructure.db.auth_repository import AuthRepository
 from dueflow.infrastructure.db.database import Database
+from dueflow.infrastructure.messaging.meta import (
+    MetaWhatsAppError,
+    MetaWhatsAppProvider,
+    mask_phone,
+)
 
 
 def create_admin(email: str, name: str, password: str | None = None) -> None:
@@ -52,6 +57,30 @@ def reset_password(email: str, password: str | None = None) -> None:
         database.dispose()
 
 
+def test_meta(to: str, message: str) -> None:
+    settings = get_settings()
+    if settings.message_provider != "meta":
+        raise ValueError("defina MESSAGE_PROVIDER=meta para realizar o teste")
+    if settings.meta_whatsapp_token is None:
+        raise ValueError("META_WHATSAPP_TOKEN não configurado")
+    provider = MetaWhatsAppProvider(
+        token=settings.meta_whatsapp_token.get_secret_value(),
+        phone_number_id=settings.meta_whatsapp_phone_number_id,
+        graph_api_version=settings.meta_graph_api_version,
+        base_url=settings.meta_graph_api_base_url,
+        timeout_seconds=settings.meta_request_timeout_seconds,
+    )
+    result = provider.send_text(
+        to,
+        message,
+        correlation_id="manual-meta-test",
+    )
+    print(
+        "Mensagem aceita pela Meta: "
+        f"id={result.provider_message_id} destino={mask_phone(to)}"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="dueflow")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -66,6 +95,15 @@ def main() -> None:
         help="redefine a senha e revoga as sessões do usuário",
     )
     reset_password_parser.add_argument("--email", required=True)
+    test_meta_parser = commands.add_parser(
+        "test-meta",
+        help="envia uma mensagem real para um número autorizado",
+    )
+    test_meta_parser.add_argument("--to", required=True)
+    test_meta_parser.add_argument(
+        "--message",
+        default="Teste de integração do DueFlow.",
+    )
     args = parser.parse_args()
 
     if args.command == "create-admin":
@@ -77,6 +115,11 @@ def main() -> None:
         try:
             reset_password(args.email)
         except (UserNotFoundError, ValueError) as exc:
+            parser.error(str(exc))
+    elif args.command == "test-meta":
+        try:
+            test_meta(args.to, args.message)
+        except (MetaWhatsAppError, ValueError) as exc:
             parser.error(str(exc))
 
 

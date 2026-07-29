@@ -3,7 +3,8 @@ from uuid import UUID
 
 from dueflow.domain.jobs import JobStatus, JobType
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationDeliveryStatus,
+    NotificationSubmissionStatus,
     NotificationProvider,
 )
 from dueflow.domain.notifications import NotificationType
@@ -95,8 +96,8 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
     with database.session() as session:
         for index, status in enumerate(
             [
-                NotificationAttemptStatus.SIMULATED,
-                NotificationAttemptStatus.FAILED,
+                NotificationSubmissionStatus.SUCCEEDED,
+                NotificationSubmissionStatus.FAILED,
             ]
         ):
             session.add(
@@ -106,8 +107,22 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
                     provider=NotificationProvider.FAKE,
                     destination="+5511999990000",
                     message="Mensagem de teste",
-                    status=status,
-                    error="falha controlada" if status.value == "failed" else None,
+                    submission_status=status,
+                    submission_error_details=(
+                        "falha controlada"
+                        if status.value == "failed"
+                        else None
+                    ),
+                    delivery_status=(
+                        NotificationDeliveryStatus.DELIVERED
+                        if status == NotificationSubmissionStatus.SUCCEEDED
+                        else NotificationDeliveryStatus.NOT_STARTED
+                    ),
+                    delivery_updated_at=(
+                        now - timedelta(hours=1)
+                        if status == NotificationSubmissionStatus.SUCCEEDED
+                        else None
+                    ),
                     idempotency_key=f"dashboard:{index}",
                     policy_name="DueTodayPolicy",
                     decision_reason="teste do dashboard",
@@ -128,8 +143,14 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
             "charges_due_today",
             "charges_due_next_7_days",
             "charges_evaluated_last_24h",
-            "notifications_processed_last_24h",
-            "notification_failures_last_24h",
+            "submissions_succeeded_last_24h",
+            "submissions_simulated_last_24h",
+            "submissions_failed_last_24h",
+            "submissions_unknown_last_24h",
+            "deliveries_confirmed_last_24h",
+            "deliveries_read_last_24h",
+            "deliveries_failed_last_24h",
+            "deliveries_awaiting",
             "jobs_queued",
             "jobs_processing",
             "jobs_completed_last_24h",
@@ -143,8 +164,14 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         "charges_due_today": 1,
         "charges_due_next_7_days": 1,
         "charges_evaluated_last_24h": 7,
-        "notifications_processed_last_24h": 1,
-        "notification_failures_last_24h": 1,
+        "submissions_succeeded_last_24h": 1,
+        "submissions_simulated_last_24h": 0,
+        "submissions_failed_last_24h": 1,
+        "submissions_unknown_last_24h": 0,
+        "deliveries_confirmed_last_24h": 1,
+        "deliveries_read_last_24h": 0,
+        "deliveries_failed_last_24h": 0,
+        "deliveries_awaiting": 0,
         "jobs_queued": 1,
         "jobs_processing": 1,
         "jobs_completed_last_24h": 1,

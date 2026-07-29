@@ -94,7 +94,7 @@ function EvaluationCard({ evaluation, index }: { evaluation: JobEvaluation; inde
           <div className="notification-result">
             <span><Icon name={evaluation.notification.error ? "x" : "check"} /></span>
             <div>
-              <strong>Tentativa de notificação: {evaluation.notification.status}</strong>
+              <strong>Tentativa de notificação: {evaluation.notification.submission_status}</strong>
               <small>
                 {evaluation.notification.deduplicated
                   ? "Envio deduplicado; nenhuma nova mensagem foi criada."

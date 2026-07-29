@@ -2,7 +2,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type {
   NotificationAttempt,
   NotificationProvider,
-  NotificationStatus,
+  NotificationSubmissionStatus,
   NotificationType,
 } from "../api/types";
 import { EmptyState } from "../components/feedback/EmptyState";
@@ -13,10 +13,14 @@ import { Icon } from "../components/ui/Icon";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Pagination } from "../components/ui/Pagination";
 import { StatusBadge } from "../components/ui/StatusBadge";
-import { useNotifications } from "../hooks/useNotifications";
+import {
+  useNotificationMetrics,
+  useNotifications,
+} from "../hooks/useNotifications";
 import {
   notificationProviderLabel,
-  notificationStatusMeta,
+  notificationDeliveryMeta,
+  notificationSubmissionMeta,
   notificationTypeLabel,
 } from "../lib/notifications";
 import { formatDateTime, formatPhone } from "../lib/format";
@@ -24,10 +28,11 @@ import { formatDateTime, formatPhone } from "../lib/format";
 export function NotificationsPage() {
   const [params, setParams] = useSearchParams();
   const page = Math.max(1, Number(params.get("page")) || 1);
-  const status = (params.get("status") || undefined) as NotificationStatus | undefined;
+  const status = (params.get("status") || undefined) as NotificationSubmissionStatus | undefined;
   const provider = (params.get("provider") || undefined) as NotificationProvider | undefined;
   const type = (params.get("type") || undefined) as NotificationType | undefined;
   const notifications = useNotifications({ page, pageSize: 25, status, provider, type });
+  const metrics = useNotificationMetrics();
 
   function updateParams(changes: Record<string, string | undefined>) {
     const next = new URLSearchParams(params);
@@ -65,11 +70,20 @@ export function NotificationsPage() {
       render: (attempt) => formatDateTime(attempt.processed_at),
     },
     {
-      key: "status",
-      label: "Resultado",
+      key: "submission",
+      label: "Envio",
       render: (attempt) => (
-        <StatusBadge tone={notificationStatusMeta[attempt.status].tone}>
-          {notificationStatusMeta[attempt.status].label}
+        <StatusBadge tone={notificationSubmissionMeta(attempt).tone}>
+          {notificationSubmissionMeta(attempt).label}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: "delivery",
+      label: "Entrega",
+      render: (attempt) => (
+        <StatusBadge tone={notificationDeliveryMeta(attempt).tone}>
+          {notificationDeliveryMeta(attempt).label}
         </StatusBadge>
       ),
     },
@@ -93,6 +107,17 @@ export function NotificationsPage() {
         title="Histórico de mensagens"
         description="Consulte mensagens simuladas, enviadas e com falha."
       />
+      {metrics.data ? (
+        <section className="notification-metrics" aria-label="Indicadores das mensagens">
+          <article><strong>{metrics.data.submissions_succeeded_last_24h}</strong><span>Aceitos pela Meta</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.submissions_simulated_last_24h}</strong><span>Envios simulados</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.submissions_failed_last_24h}</strong><span>Falhas no envio</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.deliveries_awaiting}</strong><span>Aguardando retorno</span><small>Estado atual</small></article>
+          <article><strong>{metrics.data.deliveries_confirmed_last_24h}</strong><span>Entregues</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.deliveries_read_last_24h}</strong><span>Lidas</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.deliveries_failed_last_24h}</strong><span>Falhas na entrega</span><small>Últimas 24 horas</small></article>
+        </section>
+      ) : null}
       <section className="surface-card list-card">
         <div className="list-toolbar notification-toolbar">
           <select
@@ -104,8 +129,9 @@ export function NotificationsPage() {
           >
             <option value="">Todos os resultados</option>
             <option value="simulated">Simuladas</option>
-            <option value="sent">Enviadas</option>
+            <option value="succeeded">Aceitas pela Meta</option>
             <option value="failed">Com falha</option>
+            <option value="unknown">Resultado incerto</option>
             <option value="pending">Aguardando</option>
           </select>
           <select

@@ -8,6 +8,7 @@ from uuid import UUID
 class JobType(str, Enum):
     PROCESS_CHARGE = "process_charge"
     PROCESS_DUE_CHARGES = "process_due_charges"
+    RETRY_NOTIFICATION = "retry_notification"
 
 
 class JobStatus(str, Enum):

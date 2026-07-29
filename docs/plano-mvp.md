@@ -432,7 +432,7 @@ Telas previstas:
 - **Cobranças:** listagem paginada com filtros, criação e detalhe com ações pagar, cancelar e processar.
 - **Fila:** listagem paginada dos jobs, origem manual/automática, status, tentativas e horários.
 - **Inspeção do job:** detalhe operacional do turno com linha do tempo, payload, contagens, decisões, policy vencedora, motivo, trace e erros sanitizados. O JSON bruto fica recolhido como apoio, não como visual principal.
-- **Notificações:** listagem paginada e detalhe da tentativa, mensagem, provider, resultado e vínculo com cobrança/job.
+- **Notificações:** listagem paginada e detalhe da tentativa, mensagem, provider, resultados independentes de envio e entrega, timeline, orientação de erro e vínculo com cobrança/job.
 
 O dashboard consulta `/dashboard/summary` a cada 10 segundos. A fila consulta a cada 2 segundos enquanto houver itens `queued` ou `processing` e reduz para 10 segundos quando estiver estável. O detalhe de um job para de consultar ao atingir `completed` ou `failed`. O polling pausa quando a aba está oculta e atualiza imediatamente quando ela volta ao foco. Durante cada nova consulta, a tela preserva o último resultado para evitar piscar ou voltar ao skeleton. TanStack Query controla esses intervalos, cancelamento, cache e invalidação; não criar `setInterval` disperso pelos componentes.
 
@@ -441,9 +441,15 @@ Os números devem ter definições visíveis e estáveis:
 - `customers_total`: clientes cadastrados;
 - `charges_pending`: cobranças de negócio ainda pendentes;
 - `charges_evaluated_last_24h`: soma de cobranças avaliadas pelos jobs concluídos na janela;
-- `notifications_processed_last_24h`: tentativas enviadas ou simuladas na janela;
+- `submissions_succeeded_last_24h`: solicitações aceitas pela Meta na janela;
+- `submissions_simulated_last_24h`: envios processados pelo simulador na janela;
+- `submissions_failed_last_24h`: solicitações rejeitadas de forma confirmada;
+- `submissions_unknown_last_24h`: solicitações com resultado inconclusivo;
+- `deliveries_confirmed_last_24h`: mensagens entregues ou lidas na janela;
+- `deliveries_read_last_24h`: mensagens confirmadas como lidas;
+- `deliveries_failed_last_24h`: falhas de entrega informadas por webhook;
+- `deliveries_awaiting`: mensagens atualmente aguardando confirmação;
 - `job_retries_last_24h`: jobs executados novamente, identificados por `attempts > 1`, no mesmo período;
-- `notification_failures_last_24h`: tentativas de notificação que falharam na janela.
 
 As contagens `jobs_queued`, `jobs_processing`, `jobs_completed_last_24h` e `jobs_failed_last_24h` permanecem no contrato para diagnóstico operacional, mas não ocupam os cards principais. Um job em lote pode avaliar muitas cobranças; apresentar o número de jobs como “itens processados” distorceria o trabalho de negócio.
 
@@ -716,12 +722,110 @@ Cada etapa termina com uma verificação executável.
 
 ### Etapa 8 — WhatsApp real
 
-- implementar cliente Meta e sanitização;
-- testar via HTTP mock;
-- validar manualmente com destinatário autorizado;
-- documentar configuração e fallback simulado.
+#### Etapa 8.1 — Provider Meta, segurança e auditoria — concluída
 
-**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha fica auditável.
+- [x] implementar cliente Meta e sanitização;
+- [x] selecionar `fake` ou `meta` por configuração do worker;
+- [x] validar credenciais somente quando o provider Meta estiver habilitado;
+- [x] tratar timeout, rede, erro HTTP e resposta inválida;
+- [x] testar via HTTP mock;
+- [x] exibir provider, aceite HTTP, ID da mensagem e resposta sanitizada no painel;
+- [x] documentar configuração, teste manual e fallback simulado;
+- [ ] validar manualmente com credencial e destinatário autorizados.
+
+**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha de requisição fica auditável. Implementação validada em 29/07/2026 com seleção segura no worker, credenciais obrigatórias apenas no modo Meta, timeout explícito, respostas sanitizadas, histórico visível no detalhe da cobrança, identificação clara do provider e retorno Meta legível no painel, além de testes HTTP de sucesso, rejeição, timeout e contrato inválido. O envio manual permanece pendente até a disponibilização de credencial e destinatário autorizados.
+
+#### Etapa 8.2 — Webhooks e estados de entrega — concluída
+
+- [x] criar endpoint público para verificação `hub.challenge` e recebimento de eventos;
+- [x] validar `X-Hub-Signature-256` com o App Secret antes de processar o corpo;
+- [x] localizar a tentativa pelo `provider_message_id` (`wamid`);
+- [x] distinguir requisição aceita de entrega `sent`, `delivered`, `read` ou `failed`;
+- [x] persistir timestamp, código, título e detalhes sanitizados da falha;
+- [x] ignorar campos internos e sensíveis que não sejam necessários para a auditoria;
+- [x] tratar eventos duplicados, desconhecidos e recebidos fora de ordem;
+- [x] atualizar detalhe, listagem, polling e métricas para refletir o estado de entrega;
+- [x] cobrir verificação, assinatura, sucesso, falha, duplicação e ordenação com testes.
+- [x] formalizar dois eixos independentes no domínio e na API:
+  - **Envio para a Meta:** `succeeded`, `failed` ou `unknown`;
+  - **Entrega no WhatsApp:** `not_started`, `pending`, `sent`, `delivered`, `read` ou `failed`;
+- [x] usar `unknown` para timeout, falha de rede ou outro resultado em que não seja possível confirmar se a Meta aceitou a requisição;
+- [x] garantir que um envio rejeitado fique como `Envio: falha` e `Entrega: não iniciada`;
+- [x] garantir que um HTTP de sucesso fique como `Envio: sucesso` sem ser apresentado como mensagem entregue;
+- [x] expor separadamente os dois estados nos contratos da API, sem remover a resposta síncrona e o histórico técnico já registrados;
+- [x] apresentar cada tentativa como timeline, separando o aceite da Meta dos eventos posteriores do WhatsApp;
+- [x] exibir um alerta vermelho na timeline quando o envio ou a entrega falhar;
+- [x] criar um catálogo versionado de erros relevantes da Meta com código, título, explicação e ação recomendada em português;
+- [x] manter validação, parsing, idempotência e transições do webhook como fluxo técnico explícito, sem acoplar o transporte ao motor de policies;
+- [x] preservar código e detalhes técnicos sanitizados para diagnóstico;
+- [x] usar uma mensagem genérica em português para códigos ainda não mapeados;
+- [x] manter um tratamento conhecido para o erro `131047`, orientando sobre a janela de 24 horas e o uso de template aprovado;
+- [x] separar as métricas em envios aceitos, falhas no envio, entregues, lidas, falhas de entrega e aguardando confirmação;
+- [x] permitir que a mesma tentativa conte como envio aceito e falha de entrega, pois são etapas diferentes;
+- [x] atualizar listagem, detalhe, timeline, polling e testes para o contrato de dois eixos.
+- [x] fazer o provider fake iniciar uma entrega pendente e avançá-la assincronamente pelo worker;
+- [x] oferecer cenários determinísticos `delivered`, `read` e `failed` sem falsificar o endpoint público da Meta;
+- [x] identificar os eventos fictícios como simulados e fazê-los alimentar a mesma timeline, polling, catálogo e métricas.
+
+**Pronto quando:** o painel mostra separadamente se a Meta aceitou a requisição e qual foi o resultado posterior no WhatsApp; nenhuma resposta HTTP de sucesso é apresentada como entrega confirmada; falhas síncronas e assíncronas possuem alerta, código, explicação em português, orientação e detalhes técnicos sanitizados; e as métricas não misturam aceite, entrega e leitura. Etapa concluída em 29/07/2026 com migration do contrato de dois eixos, resultado `unknown` para comunicação inconclusiva, timeline no painel, indicadores separados, catálogo inicial de erros com fallback, tratamento do `131047`, polling dos estados em trânsito e validação automatizada de assinatura, progressão, duplicação, ordenação, sanitização e métricas. O modo fake também percorre, em ciclos distintos do worker, os cenários determinísticos de entrega, leitura ou falha e alimenta a mesma experiência sem chamar a Meta.
+
+#### Etapa 8.3 — Retentativa manual auditável — concluída
+
+- [x] separar a identidade lógica do lembrete da identidade física de cada tentativa;
+- [x] permitir múltiplas tentativas numeradas sem perder o histórico anterior;
+- [x] avaliar a elegibilidade usando conjuntamente o estado do envio e o estado da entrega;
+- [x] usar `policy_flow` com estratégia `FirstMatch` para escolher uma única ação de recuperação (`retry`, `template`, `fix`, `review` ou `block`) e registrar o trace da decisão;
+- [x] permitir retentativa de uma rejeição síncrona confirmada pela Meta quando a causa for retentável;
+- [x] permitir retentativa de uma falha de entrega confirmada por webhook quando a causa for retentável;
+- [x] classificar no catálogo se o erro permite retry direto, exige correção, exige template ou não possui orientação conhecida;
+- [x] manter bloqueados envios com resultado `unknown`, evitando duplicação quando não há certeza sobre o aceite;
+- [x] manter bloqueadas entregas `pending`, `sent`, `delivered` ou `read`;
+- [x] impedir retry de texto livre quando o erro exige template, encaminhando esse cenário à Etapa 8.4;
+- [x] revalidar cobrança pendente, cliente ativo e regras aplicáveis antes do reenvio;
+- [x] impedir duas retentativas concorrentes da mesma notificação;
+- [x] criar endpoint e job específicos para retentativa manual;
+- [x] registrar tentativa de origem, usuário solicitante, horário, motivo e resultado;
+- [x] cancelar o job antes do envio se um webhook posterior tornar a tentativa inelegível;
+- [x] criar uma nova tentativa física a cada retry e relacioná-la à tentativa de origem;
+- [x] adicionar **Tentar novamente** no detalhe da mensagem e da cobrança somente quando a ação for segura;
+- [x] exibir todas as tentativas na mesma timeline sem sobrescrever falhas anteriores;
+- [x] cobrir idempotência, concorrência, elegibilidade pelos dois estados, mudança de estado e histórico com testes.
+
+**Pronto quando:** uma rejeição síncrona ou falha de entrega confirmada e classificada como retentável pode ser reenviada manualmente; resultados incertos, mensagens em trânsito e erros que exigem correção ou template permanecem bloqueados; e cada nova tentativa preserva integralmente a evidência e a relação com a tentativa anterior. Etapa concluída em 29/07/2026 com job dedicado e deduplicado, reavaliação no consumo, histórico físico numerado, autoria da solicitação, trace `FirstMatch`, cancelamento seguro quando o contexto muda e ações no detalhe da mensagem e da cobrança.
+
+O `policy_flow` não participa do recebimento técnico do webhook. Seu uso começa
+na decisão de recuperação, em que `FirstMatch` oferece ganho real ao manter
+prioridade, motivo e trace de uma única ação final. `CollectAll` fica reservado
+para uma evolução em que a mesma falha precise disparar múltiplas ações
+independentes, como alertar, suspender e abrir incidente.
+
+#### Etapa 8.4 — Reenvio com templates aprovados — concluída
+
+- [x] adotar, na demonstração, o template como ação de recuperação para falhas que
+  exigem uma nova conversa, especialmente o erro `131047`;
+- [x] manter a seleção de texto livre ou template atrás da porta do provider, para
+  que depois da demonstração o template possa se tornar o envio padrão sem
+  alterar policies, jobs, histórico ou telas;
+- [x] modelar separadamente o template oficial aprovado pela Meta e os valores
+  renderizados para uma cobrança específica;
+- [x] associar, no MVP, todos os tipos de notificação ao template transacional
+  genérico configurado, permitindo evoluir para um catálogo por tipo;
+- [x] permitir personalização por configuração da conta/loja, limitada a templates
+  previamente aprovados e a parâmetros compatíveis com seus componentes;
+- [x] usar dados do cliente e da cobrança somente como valores dos placeholders,
+  sem criar ou alterar automaticamente um template oficial por cliente ou por
+  cobrança;
+- [x] configurar nome, idioma e parâmetros do template por ambiente;
+- [x] implementar envio de template pela mesma porta do provider Meta;
+- [x] selecionar template para mensagens iniciadas fora da janela de atendimento;
+- [x] usar a classificação do erro `131047` para orientar o envio por template;
+- [x] bloquear retry de texto livre quando ele certamente repetiria a mesma falha;
+- [x] oferecer **Reenviar com template** quando houver template compatível configurado;
+- [x] manter o conteúdo renderizado e os parâmetros usados na trilha de auditoria;
+- [x] testar payload, seleção, ausência de configuração e rejeição da Meta via HTTP mock;
+- [ ] validar manualmente um template aprovado com destinatário autorizado.
+
+**Pronto quando:** lembretes iniciados pela empresa podem ser enviados legalmente fora da janela de 24 horas, o usuário entende quando deve usar texto livre ou template, e a troca futura de “template apenas no retry” para “template como padrão” exige somente configuração da estratégia de envio. Implementação concluída em 29/07/2026 com modos `retry_only` e `always`, payload Meta, simulação local, placeholders tipados, reenvio assíncrono, deduplicação e auditoria no painel. O teste externo permanece pendente enquanto `dueflow_aviso_cobranca_v1` aguarda aprovação na Meta.
 
 ### Etapa 9 — Empacotamento, demo e deploy
 
@@ -756,12 +860,13 @@ A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só
 | Item | Risco/decisão pendente | Recomendação |
 |---|---|---|
 | Evolução do `policy_flow` | Projeto está em `0.1.0` e ainda não possui releases/tags | Fixar hash do commit e atualizar conscientemente |
-| Semântica de retry | `failed` pode ou não significar mensagem aceita | Tratar por categoria de erro; no início, retry manual |
+| Semântica de retry | Falha no envio, resultado incerto e falha de entrega exigem decisões diferentes | Usar os dois eixos de estado e a classificação do erro; no início, retry manual |
 | Concorrência | Jobs manuais e automáticos podem atingir a mesma cobrança | Deduplicação do job, reserva transacional e idempotência da notificação |
 | SQLite | Contenção com vários processos | Limitar à demo; PostgreSQL em produção |
 | Worker | Dois consumidores podem reservar o mesmo job | Reserva atômica, lock com expiração e constraint de deduplicação |
 | Scheduler | Duplicação da varredura automática | Chave lógica por janela de execução e processo único no MVP |
 | Meta templates | Conversas iniciadas pela empresa podem exigir template aprovado | Confirmar formato e conta de teste antes da etapa real |
+| Evolução dos templates | Na demo o template recupera falhas; depois deverá ser o caminho padrão | Isolar a estratégia de envio e manter policies e jobs independentes do formato Meta |
 | Trace | API real do pacote pode não expor todos os passos desejados | Adaptar o nível de detalhe sem acoplar domínio a internals |
 | Reagendamento | Alteração de `due_date` redefine notificações? | Incluir `due_date` na chave, sujeito a validação comercial |
 | Atraso | Enviar uma vez ou diariamente enquanto atrasada? | Uma vez no MVP; cadência fica fora do escopo |
@@ -771,13 +876,13 @@ A ordem prioriza primeiro a decisão pura, depois a execução assíncrona e só
 | Métricas | Contagens ambíguas enfraquecem a demonstração | Definir nomes e janela móvel de 24 horas no contrato da API |
 | Deploy | VPS, domínio e TLS ainda não escolhidos | Manter imagem portátil e decidir na etapa 8 |
 
-Funcionalidades tentadoras que devem continuar fora: editor de templates, retry sofisticado, recorrência, webhooks de entrega, cadastro/recuperação de senha, RBAC, dashboards gráficos e múltiplos canais. Nenhuma é necessária para validar decisão, envio e idempotência.
+Funcionalidades tentadoras que devem continuar fora: editor de templates, retry automático sofisticado, recorrência, cadastro/recuperação de senha, RBAC, dashboards gráficos e múltiplos canais. Nenhuma é necessária para validar decisão, envio e idempotência.
 
 ## 23. Possíveis evoluções depois do MVP
 
 - isolamento por organização, RBAC, cadastro e recuperação de senha;
 - templates editáveis, versionados e aprovados;
-- webhooks da Meta e estados de entrega/leitura;
+- retenção configurável e reprocessamento de webhooks da Meta;
 - políticas de retry com backoff e fila;
 - lembretes recorrentes e cadência configurável;
 - importação CSV;
@@ -789,4 +894,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 8 — WhatsApp real**: implementar o provider Meta mantendo o provider simulado como fallback seguro.
+Iniciar a **Etapa 9 — Empacotamento, demo e deploy**: consolidar as migrations antes de existir banco persistente, criar seed determinístico e validar uma instalação limpa. O teste externo do template deve ser retomado assim que a Meta aprovar `dueflow_aviso_cobranca_v1`.

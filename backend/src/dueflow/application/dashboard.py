@@ -2,6 +2,10 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from dueflow.domain.jobs import JobStatus
+from dueflow.domain.messaging import (
+    NotificationDeliveryStatus,
+    NotificationSubmissionStatus,
+)
 from dueflow.infrastructure.db.dashboard_repository import DashboardRepository
 
 
@@ -15,8 +19,14 @@ class DashboardSummary:
     charges_due_today: int
     charges_due_next_7_days: int
     charges_evaluated_last_24h: int
-    notifications_processed_last_24h: int
-    notification_failures_last_24h: int
+    submissions_succeeded_last_24h: int
+    submissions_simulated_last_24h: int
+    submissions_failed_last_24h: int
+    submissions_unknown_last_24h: int
+    deliveries_confirmed_last_24h: int
+    deliveries_read_last_24h: int
+    deliveries_failed_last_24h: int
+    deliveries_awaiting: int
     jobs_queued: int
     jobs_processing: int
     jobs_completed_last_24h: int
@@ -53,16 +63,36 @@ class DashboardService:
                 int(result.get("evaluated", 0))
                 for result in completed_results
             ),
-            notifications_processed_last_24h=(
-                self.repository.processed_notifications_since(
-                    window_started_at
-                )
+            submissions_succeeded_last_24h=self.repository.submissions_since(
+                window_started_at,
+                NotificationSubmissionStatus.SUCCEEDED,
             ),
-            notification_failures_last_24h=(
-                self.repository.failed_notifications_since(
-                    window_started_at
-                )
+            submissions_simulated_last_24h=self.repository.submissions_since(
+                window_started_at,
+                NotificationSubmissionStatus.SIMULATED,
             ),
+            submissions_failed_last_24h=self.repository.submissions_since(
+                window_started_at,
+                NotificationSubmissionStatus.FAILED,
+            ),
+            submissions_unknown_last_24h=self.repository.submissions_since(
+                window_started_at,
+                NotificationSubmissionStatus.UNKNOWN,
+            ),
+            deliveries_confirmed_last_24h=self.repository.deliveries_since(
+                window_started_at,
+                NotificationDeliveryStatus.DELIVERED,
+                NotificationDeliveryStatus.READ,
+            ),
+            deliveries_read_last_24h=self.repository.deliveries_since(
+                window_started_at,
+                NotificationDeliveryStatus.READ,
+            ),
+            deliveries_failed_last_24h=self.repository.deliveries_since(
+                window_started_at,
+                NotificationDeliveryStatus.FAILED,
+            ),
+            deliveries_awaiting=self.repository.deliveries_awaiting(),
             jobs_queued=self.repository.jobs_with_status(JobStatus.QUEUED),
             jobs_processing=self.repository.jobs_with_status(
                 JobStatus.PROCESSING

@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     message_provider: Literal["fake", "meta"] = "fake"
+    fake_delivery_outcome: Literal["delivered", "read", "failed"] = "delivered"
+    fake_delivery_delay_seconds: float = Field(default=2, ge=0, le=60)
+    fake_delivery_error_code: int = Field(default=131047, ge=1)
+    meta_template_mode: Literal["retry_only", "always"] = "retry_only"
+    meta_template_name: str = "dueflow_aviso_cobranca_v1"
+    meta_template_language: str = "pt_BR"
+    meta_whatsapp_token: SecretStr | None = None
+    meta_whatsapp_phone_number_id: str = ""
+    meta_graph_api_version: str = ""
+    meta_graph_api_base_url: str = "https://graph.facebook.com"
+    meta_request_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    meta_webhook_verify_token: SecretStr | None = None
+    meta_app_secret: SecretStr | None = None
     automation_interval_seconds: int = Field(default=120, ge=1, le=86_400)
     worker_poll_interval_seconds: float = Field(default=2, gt=0, le=60)
     worker_lock_ttl_seconds: int = Field(default=300, ge=10)
@@ -73,6 +86,42 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SameSite=None exige AUTH_COOKIE_SECURE=true"
             )
+        if self.message_provider == "meta":
+            missing = []
+            if (
+                self.meta_whatsapp_token is None
+                or not self.meta_whatsapp_token.get_secret_value().strip()
+            ):
+                missing.append("META_WHATSAPP_TOKEN")
+            if not self.meta_whatsapp_phone_number_id.strip():
+                missing.append("META_WHATSAPP_PHONE_NUMBER_ID")
+            if not self.meta_graph_api_version.strip():
+                missing.append("META_GRAPH_API_VERSION")
+            if missing:
+                raise ValueError(
+                    "MESSAGE_PROVIDER=meta exige " + ", ".join(missing)
+                )
+            if not self.meta_whatsapp_phone_number_id.isdigit():
+                raise ValueError(
+                    "META_WHATSAPP_PHONE_NUMBER_ID deve conter apenas números"
+                )
+            version = self.meta_graph_api_version
+            if (
+                not version.startswith("v")
+                or not version[1:].replace(".", "", 1).isdigit()
+                or "." not in version
+            ):
+                raise ValueError(
+                    "META_GRAPH_API_VERSION deve seguir o formato vNN.N"
+                )
+            if not self.meta_graph_api_base_url.startswith(("https://", "http://")):
+                raise ValueError(
+                    "META_GRAPH_API_BASE_URL deve ser uma URL HTTP(S)"
+                )
+        if not self.meta_template_name.strip():
+            raise ValueError("META_TEMPLATE_NAME não pode ser vazio")
+        if not self.meta_template_language.strip():
+            raise ValueError("META_TEMPLATE_LANGUAGE não pode ser vazio")
         return self
 
 

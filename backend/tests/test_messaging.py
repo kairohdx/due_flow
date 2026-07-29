@@ -4,7 +4,7 @@ from decimal import Decimal
 import pytest
 
 from dueflow.application.message_templates import MessageRenderer, format_brl
-from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.domain.messaging import NotificationSubmissionStatus
 from dueflow.domain.notifications import NotificationType
 from dueflow.infrastructure.messaging.fake import FakeWhatsAppProvider
 
@@ -18,7 +18,10 @@ def test_fake_provider_reproduces_meta_text_contract() -> None:
         correlation_id="attempt-123",
     )
 
-    assert result.status is NotificationAttemptStatus.SIMULATED
+    assert (
+        result.submission_status
+        is NotificationSubmissionStatus.SIMULATED
+    )
     assert result.provider_message_id.startswith("wamid.fake.")
     assert result.request_payload == {
         "messaging_product": "whatsapp",
@@ -70,4 +73,3 @@ def test_templates_render_expected_charge_data(
 
 def test_brl_formatter_does_not_lose_decimal_precision() -> None:
     assert format_brl(Decimal("0.10") + Decimal("0.20")) == "R$ 0,30"
-

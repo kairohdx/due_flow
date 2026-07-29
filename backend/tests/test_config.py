@@ -31,3 +31,34 @@ def test_production_requires_secure_auth_settings() -> None:
             jwt_secret="production-secret-with-at-least-thirty-two-characters",
             _env_file=None,
         )
+
+
+def test_meta_provider_requires_complete_and_valid_configuration() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="META_WHATSAPP_TOKEN",
+    ):
+        Settings(message_provider="meta", _env_file=None)
+
+    with pytest.raises(
+        ValidationError,
+        match="PHONE_NUMBER_ID deve conter apenas números",
+    ):
+        Settings(
+            message_provider="meta",
+            meta_whatsapp_token="-".join(["not", "a", "real", "token"]),
+            meta_whatsapp_phone_number_id="phone-id",
+            meta_graph_api_version="v99.0",
+            _env_file=None,
+        )
+
+    settings = Settings(
+        message_provider="meta",
+        meta_whatsapp_token="-".join(["not", "a", "real", "token"]),
+        meta_whatsapp_phone_number_id="123456789",
+        meta_graph_api_version="v99.0",
+        _env_file=None,
+    )
+
+    assert settings.message_provider == "meta"
+    assert repr(settings.meta_whatsapp_token) == "SecretStr('**********')"
