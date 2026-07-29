@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     meta_graph_api_version: str = ""
     meta_graph_api_base_url: str = "https://graph.facebook.com"
     meta_request_timeout_seconds: float = Field(default=10, gt=0, le=60)
+    meta_webhook_verify_token: SecretStr | None = None
+    meta_app_secret: SecretStr | None = None
     automation_interval_seconds: int = Field(default=120, ge=1, le=86_400)
     worker_poll_interval_seconds: float = Field(default=2, gt=0, le=60)
     worker_lock_ttl_seconds: int = Field(default=300, ge=10)

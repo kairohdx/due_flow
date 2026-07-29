@@ -14,8 +14,13 @@ class DashboardSummaryResponse(BaseModel):
     charges_due_today: int
     charges_due_next_7_days: int
     charges_evaluated_last_24h: int
-    notifications_processed_last_24h: int
-    notification_failures_last_24h: int
+    submissions_succeeded_last_24h: int
+    submissions_failed_last_24h: int
+    submissions_unknown_last_24h: int
+    deliveries_confirmed_last_24h: int
+    deliveries_read_last_24h: int
+    deliveries_failed_last_24h: int
+    deliveries_awaiting: int
     jobs_queued: int
     jobs_processing: int
     jobs_completed_last_24h: int

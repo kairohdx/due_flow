@@ -61,9 +61,12 @@ const metaAttempt: NotificationAttempt = {
   provider: "meta",
   destination: customer.phone,
   message: "Sua cobrança vence hoje.",
-  status: "sent",
+  submission_status: "succeeded",
   provider_message_id: "wamid.meta-test",
-  error: null,
+  submission_error_code: null,
+  submission_error_title: null,
+  submission_error_details: null,
+  submission_error_info: null,
   idempotency_key: "charge-1:2026-07-31:due_today",
   policy_name: "DueTodayPolicy",
   decision_reason: "charge_due_today",
@@ -71,6 +74,8 @@ const metaAttempt: NotificationAttempt = {
   provider_response: {
     response: { http_status: 200, correlation_id: "notification-1" },
   },
+  delivery_status: "pending",
+  delivery_error_info: null,
   processed_at: "2026-07-29T12:01:00Z",
 };
 
@@ -189,7 +194,7 @@ it("confirma a verificação assíncrona e o pagamento", async () => {
   expect(
     screen.getByRole("link", { name: /WhatsApp Meta/ }),
   ).toHaveAttribute("href", "/notificacoes/notification-1");
-  expect(screen.getByText("Enviada")).toBeInTheDocument();
+  expect(screen.getByText("Aguardando entrega")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Verificar agora" }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Adicionar à fila" }));

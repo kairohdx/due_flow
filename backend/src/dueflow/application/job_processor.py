@@ -64,7 +64,7 @@ class ProcessingJobHandler:
         )
         simulated = sum(
             item["notification"] is not None
-            and item["notification"]["status"] == "simulated"
+            and item["notification"]["submission_status"] == "simulated"
             and not item["notification"]["deduplicated"]
             for item in evaluations
         )
@@ -75,7 +75,7 @@ class ProcessingJobHandler:
         )
         notification_failed = sum(
             item["notification"] is not None
-            and item["notification"]["status"] == "failed"
+            and item["notification"]["submission_status"] in {"failed", "unknown"}
             for item in evaluations
         )
         return {

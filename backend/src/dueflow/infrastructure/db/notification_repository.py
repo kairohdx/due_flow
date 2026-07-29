@@ -8,7 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
+    NotificationDeliveryStatus,
     NotificationProvider,
 )
 from dueflow.domain.notifications import NotificationType
@@ -51,7 +52,8 @@ class NotificationAttemptRepository:
             provider=provider,
             destination=destination,
             message=message,
-            status=NotificationAttemptStatus.PENDING,
+            submission_status=NotificationSubmissionStatus.PENDING,
+            delivery_status=NotificationDeliveryStatus.NOT_STARTED,
             idempotency_key=idempotency_key,
             policy_name=policy_name,
             decision_reason=decision_reason,
@@ -74,15 +76,22 @@ class NotificationAttemptRepository:
         self,
         attempt: NotificationAttempt,
         *,
-        status: NotificationAttemptStatus,
+        submission_status: NotificationSubmissionStatus,
         provider_message_id: str,
         provider_response: dict[str, Any],
         processed_at: datetime,
     ) -> NotificationAttempt:
-        attempt.status = status
+        attempt.submission_status = submission_status
         attempt.provider_message_id = provider_message_id
         attempt.provider_response = dict(provider_response)
-        attempt.error = None
+        if (
+            submission_status == NotificationSubmissionStatus.SUCCEEDED
+            and attempt.provider == NotificationProvider.META
+        ):
+            attempt.delivery_status = NotificationDeliveryStatus.PENDING
+        attempt.submission_error_code = None
+        attempt.submission_error_title = None
+        attempt.submission_error_details = None
         attempt.processed_at = processed_at
         self.session.commit()
         self.session.refresh(attempt)
@@ -93,10 +102,22 @@ class NotificationAttemptRepository:
         attempt: NotificationAttempt,
         *,
         error: str,
+        error_code: int | None = None,
+        error_title: str | None = None,
+        outcome_unknown: bool = False,
         processed_at: datetime,
     ) -> NotificationAttempt:
-        attempt.status = NotificationAttemptStatus.FAILED
-        attempt.error = error[:2000]
+        attempt.submission_status = (
+            NotificationSubmissionStatus.UNKNOWN
+            if outcome_unknown
+            else NotificationSubmissionStatus.FAILED
+        )
+        attempt.delivery_status = NotificationDeliveryStatus.NOT_STARTED
+        attempt.submission_error_code = error_code
+        attempt.submission_error_title = (
+            error_title[:255] if error_title is not None else None
+        )
+        attempt.submission_error_details = error[:2000]
         attempt.processed_at = processed_at
         self.session.commit()
         self.session.refresh(attempt)
@@ -115,11 +136,51 @@ class NotificationAttemptRepository:
     def get(self, attempt_id: UUID) -> NotificationAttempt | None:
         return self.session.get(NotificationAttempt, attempt_id)
 
+    def get_by_provider_message_id(
+        self,
+        provider_message_id: str,
+        *,
+        for_update: bool = False,
+    ) -> NotificationAttempt | None:
+        statement = select(NotificationAttempt).where(
+            NotificationAttempt.provider_message_id == provider_message_id
+        )
+        if for_update:
+            statement = statement.with_for_update()
+        return self.session.scalar(statement)
+
+    def update_delivery(
+        self,
+        attempt: NotificationAttempt,
+        *,
+        status: NotificationDeliveryStatus,
+        event_at: datetime,
+        received_at: datetime,
+        error_code: int | None,
+        error_title: str | None,
+        error_details: str | None,
+        response: dict[str, Any],
+    ) -> NotificationAttempt:
+        attempt.delivery_status = status
+        attempt.delivery_event_at = event_at
+        attempt.delivery_updated_at = received_at
+        attempt.delivery_error_code = error_code
+        attempt.delivery_error_title = (
+            error_title[:255] if error_title is not None else None
+        )
+        attempt.delivery_error_details = (
+            error_details[:2000] if error_details is not None else None
+        )
+        attempt.delivery_response = dict(response)
+        self.session.commit()
+        self.session.refresh(attempt)
+        return attempt
+
     def list(
         self,
         *,
         charge_id: UUID | None,
-        status: NotificationAttemptStatus | None,
+        status: NotificationSubmissionStatus | None,
         provider: NotificationProvider | None,
         notification_type: NotificationType | None,
         processed_from: datetime | None,
@@ -154,7 +215,7 @@ class NotificationAttemptRepository:
         self,
         *,
         charge_id: UUID | None,
-        status: NotificationAttemptStatus | None,
+        status: NotificationSubmissionStatus | None,
         provider: NotificationProvider | None,
         notification_type: NotificationType | None,
         processed_from: datetime | None,
@@ -179,14 +240,16 @@ class NotificationAttemptRepository:
     def _apply_filters(
         statement,
         *,
-        status: NotificationAttemptStatus | None,
+        status: NotificationSubmissionStatus | None,
         provider: NotificationProvider | None,
         notification_type: NotificationType | None,
         processed_from: datetime | None,
         processed_to: datetime | None,
     ):
         if status is not None:
-            statement = statement.where(NotificationAttempt.status == status)
+            statement = statement.where(
+                NotificationAttempt.submission_status == status
+            )
         if provider is not None:
             statement = statement.where(NotificationAttempt.provider == provider)
         if notification_type is not None:

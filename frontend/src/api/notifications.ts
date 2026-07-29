@@ -2,7 +2,7 @@ import { apiFetch } from "./client";
 import type {
   NotificationAttempt,
   NotificationProvider,
-  NotificationStatus,
+  NotificationSubmissionStatus,
   NotificationType,
   Page,
 } from "./types";
@@ -10,7 +10,7 @@ import type {
 export interface NotificationFilters {
   page: number;
   pageSize: number;
-  status?: NotificationStatus;
+  status?: NotificationSubmissionStatus;
   provider?: NotificationProvider;
   type?: NotificationType;
   processedFrom?: string;

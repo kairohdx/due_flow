@@ -5,7 +5,10 @@ from uuid import UUID
 
 from dueflow.application.message_templates import MessageRenderer
 from dueflow.application.whatsapp import WhatsAppProvider
-from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.domain.messaging import (
+    NotificationSubmissionStatus,
+    ProviderSubmissionError,
+)
 from dueflow.domain.notifications import DecisionKind, PolicyEvaluation
 from dueflow.infrastructure.db.models import Charge, Customer
 from dueflow.infrastructure.db.notification_repository import (
@@ -16,7 +19,7 @@ from dueflow.infrastructure.db.notification_repository import (
 @dataclass(frozen=True, slots=True)
 class NotificationExecution:
     attempt_id: UUID
-    status: NotificationAttemptStatus
+    submission_status: NotificationSubmissionStatus
     provider_message_id: str | None
     idempotency_key: str
     deduplicated: bool
@@ -25,7 +28,7 @@ class NotificationExecution:
     def as_dict(self) -> dict[str, Any]:
         return {
             "attempt_id": str(self.attempt_id),
-            "status": self.status.value,
+            "submission_status": self.submission_status.value,
             "provider_message_id": self.provider_message_id,
             "idempotency_key": self.idempotency_key,
             "deduplicated": self.deduplicated,
@@ -89,11 +92,11 @@ class NotificationService:
         if not reservation.created:
             return NotificationExecution(
                 attempt_id=attempt.id,
-                status=attempt.status,
+                submission_status=attempt.submission_status,
                 provider_message_id=attempt.provider_message_id,
                 idempotency_key=attempt.idempotency_key,
                 deduplicated=True,
-                error=attempt.error,
+                error=attempt.submission_error_details,
             )
 
         try:
@@ -104,23 +107,33 @@ class NotificationService:
             )
         except Exception as exc:
             safe_error = f"{type(exc).__name__}: {exc}"
+            provider_error = (
+                exc if isinstance(exc, ProviderSubmissionError) else None
+            )
             attempt = self.repository.fail(
                 attempt,
                 error=safe_error,
+                error_code=provider_error.code if provider_error else None,
+                error_title=provider_error.title if provider_error else None,
+                outcome_unknown=(
+                    provider_error.outcome_unknown
+                    if provider_error
+                    else False
+                ),
                 processed_at=datetime.now(UTC),
             )
             return NotificationExecution(
                 attempt_id=attempt.id,
-                status=attempt.status,
+                submission_status=attempt.submission_status,
                 provider_message_id=None,
                 idempotency_key=attempt.idempotency_key,
                 deduplicated=False,
-                error=attempt.error,
+                error=attempt.submission_error_details,
             )
 
         attempt = self.repository.complete(
             attempt,
-            status=result.status,
+            submission_status=result.submission_status,
             provider_message_id=result.provider_message_id,
             provider_response={
                 "request": result.request_payload,
@@ -130,7 +143,7 @@ class NotificationService:
         )
         return NotificationExecution(
             attempt_id=attempt.id,
-            status=attempt.status,
+            submission_status=attempt.submission_status,
             provider_message_id=attempt.provider_message_id,
             idempotency_key=attempt.idempotency_key,
             deduplicated=False,

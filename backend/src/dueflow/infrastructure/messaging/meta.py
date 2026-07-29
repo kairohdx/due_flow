@@ -5,13 +5,14 @@ from typing import Any
 import httpx
 
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
     NotificationProvider,
+    ProviderSubmissionError,
     ProviderResult,
 )
 
 
-class MetaWhatsAppError(RuntimeError):
+class MetaWhatsAppError(ProviderSubmissionError):
     """Erro seguro para persistência e logs, sem credenciais ou resposta bruta."""
 
 
@@ -116,11 +117,13 @@ class MetaWhatsAppProvider:
                 )
         except httpx.TimeoutException as exc:
             raise MetaWhatsAppError(
-                "timeout ao comunicar com a API da Meta"
+                "timeout ao comunicar com a API da Meta",
+                outcome_unknown=True,
             ) from exc
         except httpx.RequestError as exc:
             raise MetaWhatsAppError(
-                "falha de comunicação com a API da Meta"
+                "falha de comunicação com a API da Meta",
+                outcome_unknown=True,
             ) from exc
 
         payload = self._response_json(response)
@@ -136,7 +139,7 @@ class MetaWhatsAppProvider:
         safe_response["http_status"] = response.status_code
         safe_response["correlation_id"] = correlation_id
         return ProviderResult(
-            status=NotificationAttemptStatus.SENT,
+            submission_status=NotificationSubmissionStatus.SUCCEEDED,
             provider_message_id=message_id,
             request_payload=sanitize_provider_data(
                 request_payload,
@@ -158,7 +161,8 @@ class MetaWhatsAppProvider:
         except ValueError as exc:
             if response.is_success:
                 raise MetaWhatsAppError(
-                    "resposta inválida da API da Meta"
+                    "resposta inválida da API da Meta",
+                    outcome_unknown=True,
                 ) from exc
             return {}
 
@@ -182,22 +186,29 @@ class MetaWhatsAppProvider:
             details.append(str(error_type)[:100])
         return MetaWhatsAppError(
             f"API da Meta recusou a mensagem ({', '.join(details)}): "
-            f"{safe_message}"
+            f"{safe_message}",
+            code=code if isinstance(code, int) else None,
+            title=str(error_type)[:255] if error_type else None,
         )
 
     @staticmethod
     def _message_id(payload: Any) -> str:
         if not isinstance(payload, dict):
-            raise MetaWhatsAppError("resposta inválida da API da Meta")
+            raise MetaWhatsAppError(
+                "resposta inválida da API da Meta",
+                outcome_unknown=True,
+            )
         messages = payload.get("messages")
         if not isinstance(messages, list) or not messages:
             raise MetaWhatsAppError(
-                "resposta da API da Meta não contém identificador da mensagem"
+                "resposta da API da Meta não contém identificador da mensagem",
+                outcome_unknown=True,
             )
         first = messages[0]
         message_id = first.get("id") if isinstance(first, dict) else None
         if not isinstance(message_id, str) or not message_id:
             raise MetaWhatsAppError(
-                "resposta da API da Meta não contém identificador da mensagem"
+                "resposta da API da Meta não contém identificador da mensagem",
+                outcome_unknown=True,
             )
         return message_id[:255]

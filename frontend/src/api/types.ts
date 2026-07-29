@@ -134,9 +134,33 @@ export interface ChargePayload {
   reminder_days_before: number;
 }
 
-export type NotificationStatus = "pending" | "sent" | "failed" | "simulated";
+export type NotificationSubmissionStatus =
+  | "pending"
+  | "succeeded"
+  | "failed"
+  | "unknown"
+  | "simulated";
+export type NotificationDeliveryStatus =
+  | "not_started"
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "read"
+  | "failed";
 export type NotificationProvider = "fake" | "meta";
 export type NotificationType = "upcoming" | "due_today" | "overdue";
+export type MetaErrorAction = "retry" | "fix" | "template" | "review";
+
+export interface MetaErrorInfo {
+  code: number | null;
+  title: string;
+  message: string;
+  action: string;
+  action_type: MetaErrorAction;
+  known: boolean;
+  technical_title: string | null;
+  technical_details: string | null;
+}
 
 export interface NotificationAttempt {
   id: string;
@@ -146,13 +170,24 @@ export interface NotificationAttempt {
   provider: NotificationProvider;
   destination: string;
   message: string;
-  status: NotificationStatus;
+  submission_status: NotificationSubmissionStatus;
   provider_message_id: string | null;
-  error: string | null;
+  submission_error_code: number | null;
+  submission_error_title: string | null;
+  submission_error_details: string | null;
+  submission_error_info: MetaErrorInfo | null;
   idempotency_key: string;
   policy_name: string;
   decision_reason: string;
   trace: JobTrace | null;
   provider_response: Record<string, unknown> | null;
+  delivery_status: NotificationDeliveryStatus;
+  delivery_event_at?: string | null;
+  delivery_updated_at?: string | null;
+  delivery_error_code?: number | null;
+  delivery_error_title?: string | null;
+  delivery_error_details?: string | null;
+  delivery_error_info: MetaErrorInfo | null;
+  delivery_response?: Record<string, unknown> | null;
   processed_at: string;
 }

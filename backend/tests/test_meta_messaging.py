@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 from dueflow.config import Settings
-from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.domain.messaging import NotificationSubmissionStatus
 from dueflow.infrastructure.messaging.fake import FakeWhatsAppProvider
 from dueflow.infrastructure.messaging.meta import (
     MetaWhatsAppError,
@@ -63,7 +63,10 @@ def test_meta_provider_sends_expected_request_and_returns_safe_result() -> None:
         correlation_id="attempt-123",
     )
 
-    assert result.status is NotificationAttemptStatus.SENT
+    assert (
+        result.submission_status
+        is NotificationSubmissionStatus.SUCCEEDED
+    )
     assert result.provider_message_id == "wamid.meta-test"
     assert result.request_payload["to"] == "55*******0000"
     assert result.response_payload["contacts"][0]["input"] == "55*******0000"
@@ -112,12 +115,13 @@ def test_meta_provider_translates_timeout_without_leaking_data() -> None:
     with pytest.raises(
         MetaWhatsAppError,
         match="timeout ao comunicar com a API da Meta",
-    ):
+    ) as captured:
         provider_with(handler).send_text(
             "+5511999990000",
             "Mensagem",
             correlation_id="attempt-123",
         )
+    assert captured.value.outcome_unknown is True
 
 
 def test_meta_provider_rejects_success_without_message_id() -> None:

@@ -118,7 +118,9 @@ function AttentionCard({ summary }: { summary: DashboardSummary }) {
   const attentionTotal =
     summary.charges_overdue +
     summary.charges_due_today +
-    summary.notification_failures_last_24h;
+    summary.submissions_failed_last_24h +
+    summary.submissions_unknown_last_24h +
+    summary.deliveries_failed_last_24h;
   const items = [
     {
       label: "Cobranças vencidas",
@@ -137,12 +139,28 @@ function AttentionCard({ summary }: { summary: DashboardSummary }) {
       to: "/cobrancas?status=pending",
     },
     {
-      label: "Falhas no envio",
-      value: summary.notification_failures_last_24h,
+      label: "Falhas ao enviar para a Meta",
+      value: summary.submissions_failed_last_24h,
       hint: "Ocorridas nas últimas 24h",
       icon: "x" as const,
       tone: "danger",
       to: "/notificacoes",
+    },
+    {
+      label: "Falhas na entrega pelo WhatsApp",
+      value: summary.deliveries_failed_last_24h,
+      hint: "Informadas por webhook nas últimas 24h",
+      icon: "x" as const,
+      tone: "danger",
+      to: "/notificacoes",
+    },
+    {
+      label: "Envios com resultado incerto",
+      value: summary.submissions_unknown_last_24h,
+      hint: "Precisam de revisão antes de reenviar",
+      icon: "clock" as const,
+      tone: "warning",
+      to: "/notificacoes?status=unknown",
     },
   ];
 
@@ -282,7 +300,7 @@ export function DashboardPage() {
             <MetricCard label="Cobranças vencidas" value={summary.charges_overdue} hint="Precisam de atenção" icon="bell" tone="red" />
             <MetricCard label="Vencem hoje" value={summary.charges_due_today} hint="Prazo de hoje" icon="calendar" tone="amber" />
             <MetricCard label="Vencem em até 7 dias" value={summary.charges_due_next_7_days} hint="Próximos vencimentos" icon="clock" tone="blue" />
-            <MetricCard label="Lembretes enviados" value={summary.notifications_processed_last_24h} hint="Últimas 24 horas" icon="check" tone="teal" />
+            <MetricCard label="Envios aceitos pela Meta" value={summary.submissions_succeeded_last_24h} hint="Últimas 24 horas" icon="check" tone="teal" />
           </section>
         </>
       )}

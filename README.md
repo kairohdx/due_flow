@@ -35,7 +35,10 @@ A troca revoga todas as sessões abertas desse usuário.
 
 ## Autenticação
 
-Somente `/health`, `/auth/login` e `/auth/refresh` são públicos. As demais rotas exigem `Authorization: Bearer <access_token>`.
+Somente `/health`, `/auth/login`, `/auth/refresh` e os webhooks da Meta são
+públicos. A verificação do webhook usa um token próprio e o recebimento de
+eventos exige uma assinatura HMAC válida. As demais rotas exigem
+`Authorization: Bearer <access_token>`.
 
 ```text
 POST /auth/login
@@ -262,6 +265,8 @@ META_WHATSAPP_PHONE_NUMBER_ID=
 META_GRAPH_API_VERSION=
 META_GRAPH_API_BASE_URL=https://graph.facebook.com
 META_REQUEST_TIMEOUT_SECONDS=10
+META_WEBHOOK_VERIFY_TOKEN=
+META_APP_SECRET=
 ```
 
 `META_GRAPH_API_VERSION` deve ser preenchida explicitamente com a versão
@@ -298,7 +303,48 @@ Mensagens de texto livres dependem de uma conversa aberta na janela permitida
 pela Meta. Para iniciar conversas fora dessa janela, será necessário cadastrar
 e usar um template aprovado compatível com as mensagens do DueFlow.
 
-Referências oficiais: [envio de mensagens pela Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages)
+### Webhook de entrega
+
+Configure na Meta uma URL HTTPS pública apontando para:
+
+```text
+GET  /webhooks/meta
+POST /webhooks/meta
+```
+
+Use em `META_WEBHOOK_VERIFY_TOKEN` um valor aleatório exclusivo para a
+verificação da URL. `META_APP_SECRET` deve conter o App Secret da aplicação e é
+usado para validar `X-Hub-Signature-256` sobre o corpo bruto de cada evento.
+Esses valores não devem ser iguais ao token de acesso do WhatsApp.
+
+Depois de validar a URL, assine o campo `messages` da conta do WhatsApp
+Business. O DueFlow correlaciona `statuses` pelo `wamid` e mantém dois
+resultados independentes:
+
+- envio para a Meta: `pending`, `succeeded`, `failed`, `unknown` ou
+  `simulated`;
+- entrega no WhatsApp: `not_started`, `pending`, `sent`, `delivered`, `read`
+  ou `failed`.
+
+Timeout e falha de rede ficam como `unknown`, pois não comprovam se a Meta
+aceitou a solicitação. Um HTTP de sucesso registra apenas o aceite e nunca é
+apresentado como entrega confirmada.
+
+Eventos duplicados, desconhecidos ou regressivos são aceitos sem alterar o
+histórico. Em falhas, somente código, título, detalhes e metadados sanitizados
+necessários à auditoria são persistidos; o payload bruto e campos internos da
+Meta são descartados. O painel apresenta uma timeline com envio e entrega,
+traduz códigos conhecidos — incluindo o `131047` — e usa uma orientação
+genérica em português para códigos ainda não catalogados. Os detalhes técnicos
+sanitizados continuam disponíveis para diagnóstico.
+
+O endpoint retorna `503` enquanto os segredos do webhook não estiverem
+configurados. Para o teste externo, a API precisa estar acessível pela Meta por
+HTTPS; o painel atualiza automaticamente o estado enquanto a entrega ainda está
+pendente.
+
+Referências oficiais: [envio de mensagens pela Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages),
+[códigos de erro do WhatsApp](https://developers.facebook.com/docs/whatsapp/cloud-api/support/error-codes/)
 e [versionamento da Graph API](https://developers.facebook.com/docs/graph-api/changelog/versions).
 
 ## Visão geral e diagnóstico operacional

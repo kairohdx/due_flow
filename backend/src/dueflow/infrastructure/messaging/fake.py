@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
     NotificationProvider,
     ProviderResult,
 )
@@ -36,9 +36,8 @@ class FakeWhatsAppProvider:
             "simulated": True,
         }
         return ProviderResult(
-            status=NotificationAttemptStatus.SIMULATED,
+            submission_status=NotificationSubmissionStatus.SIMULATED,
             provider_message_id=message_id,
             request_payload=request_payload,
             response_payload=response_payload,
         )
-

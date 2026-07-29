@@ -24,9 +24,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from dueflow.domain.charges import ChargeStatus
 from dueflow.domain.jobs import JobStatus, JobType
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
+    NotificationDeliveryStatus,
     NotificationProvider,
 )
+from dueflow.domain.meta_errors import describe_meta_error
 from dueflow.domain.notifications import NotificationType
 from dueflow.infrastructure.db.base import Base, TimestampMixin
 
@@ -91,6 +93,10 @@ class NotificationAttempt(Base):
             name="uq_notification_attempts_idempotency_key",
         ),
         Index("ix_notification_attempts_processed_at", "processed_at"),
+        Index(
+            "ix_notification_attempts_provider_message_id",
+            "provider_message_id",
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -120,21 +126,46 @@ class NotificationAttempt(Base):
     )
     destination: Mapped[str] = mapped_column(String(32))
     message: Mapped[str] = mapped_column(Text)
-    status: Mapped[NotificationAttemptStatus] = mapped_column(
+    submission_status: Mapped[NotificationSubmissionStatus] = mapped_column(
+        "submission_status",
         SqlEnum(
-            NotificationAttemptStatus,
-            name="notification_attempt_status",
+            NotificationSubmissionStatus,
+            name="notification_submission_status",
             native_enum=False,
             values_callable=lambda enum: [item.value for item in enum],
+            create_constraint=True,
         )
     )
     provider_message_id: Mapped[str | None] = mapped_column(String(255))
-    error: Mapped[str | None] = mapped_column(Text)
+    submission_error_code: Mapped[int | None] = mapped_column(Integer)
+    submission_error_title: Mapped[str | None] = mapped_column(String(255))
+    submission_error_details: Mapped[str | None] = mapped_column(Text)
     idempotency_key: Mapped[str] = mapped_column(String(255))
     policy_name: Mapped[str] = mapped_column(String(120))
     decision_reason: Mapped[str] = mapped_column(String(255))
     trace: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     provider_response: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    delivery_status: Mapped[NotificationDeliveryStatus] = mapped_column(
+        SqlEnum(
+            NotificationDeliveryStatus,
+            name="notification_delivery_status",
+            native_enum=False,
+            values_callable=lambda enum: [item.value for item in enum],
+            create_constraint=True,
+        ),
+        default=NotificationDeliveryStatus.NOT_STARTED,
+        server_default=NotificationDeliveryStatus.NOT_STARTED.value,
+    )
+    delivery_event_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    delivery_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    delivery_error_code: Mapped[int | None] = mapped_column(Integer)
+    delivery_error_title: Mapped[str | None] = mapped_column(String(255))
+    delivery_error_details: Mapped[str | None] = mapped_column(Text)
+    delivery_response: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     processed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -142,6 +173,44 @@ class NotificationAttempt(Base):
 
     charge: Mapped[Charge] = relationship(back_populates="notification_attempts")
     processing_job: Mapped["ProcessingJob | None"] = relationship()
+
+    @property
+    def submission_error_info(self) -> dict[str, Any] | None:
+        if (
+            self.submission_status
+            not in {
+                NotificationSubmissionStatus.FAILED,
+                NotificationSubmissionStatus.UNKNOWN,
+            }
+        ):
+            return None
+        description = describe_meta_error(self.submission_error_code)
+        return {
+            "code": self.submission_error_code,
+            "title": description.title,
+            "message": description.message,
+            "action": description.action,
+            "action_type": description.action_type,
+            "known": description.known,
+            "technical_title": self.submission_error_title,
+            "technical_details": self.submission_error_details,
+        }
+
+    @property
+    def delivery_error_info(self) -> dict[str, Any] | None:
+        if self.delivery_status != NotificationDeliveryStatus.FAILED:
+            return None
+        description = describe_meta_error(self.delivery_error_code)
+        return {
+            "code": self.delivery_error_code,
+            "title": description.title,
+            "message": description.message,
+            "action": description.action,
+            "action_type": description.action_type,
+            "known": description.known,
+            "technical_title": self.delivery_error_title,
+            "technical_details": self.delivery_error_details,
+        }
 
 
 class ProcessingJob(TimestampMixin, Base):

@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 
 from dueflow.domain.jobs import JobStatus
 from dueflow.domain.charges import ChargeStatus
-from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.domain.messaging import (
+    NotificationSubmissionStatus,
+    NotificationDeliveryStatus,
+)
 from dueflow.infrastructure.db.models import (
     Charge,
     Customer,
@@ -65,29 +68,47 @@ class DashboardRepository:
             if result is not None
         ]
 
-    def processed_notifications_since(self, since: datetime) -> int:
+    def submissions_since(
+        self,
+        since: datetime,
+        status: NotificationSubmissionStatus,
+    ) -> int:
         return self._count(
             select(func.count())
             .select_from(NotificationAttempt)
             .where(
-                NotificationAttempt.status.in_(
-                    [
-                        NotificationAttemptStatus.SENT,
-                        NotificationAttemptStatus.SIMULATED,
-                    ]
-                ),
+                NotificationAttempt.submission_status == status,
                 NotificationAttempt.processed_at >= since,
             )
         )
 
-    def failed_notifications_since(self, since: datetime) -> int:
+    def deliveries_since(
+        self,
+        since: datetime,
+        *statuses: NotificationDeliveryStatus,
+    ) -> int:
         return self._count(
             select(func.count())
             .select_from(NotificationAttempt)
             .where(
-                NotificationAttempt.status
-                == NotificationAttemptStatus.FAILED,
-                NotificationAttempt.processed_at >= since,
+                NotificationAttempt.delivery_status.in_(statuses),
+                NotificationAttempt.delivery_updated_at >= since,
+            )
+        )
+
+    def deliveries_awaiting(self) -> int:
+        return self._count(
+            select(func.count())
+            .select_from(NotificationAttempt)
+            .where(
+                NotificationAttempt.submission_status
+                == NotificationSubmissionStatus.SUCCEEDED,
+                NotificationAttempt.delivery_status.in_(
+                    (
+                        NotificationDeliveryStatus.PENDING,
+                        NotificationDeliveryStatus.SENT,
+                    )
+                ),
             )
         )
 

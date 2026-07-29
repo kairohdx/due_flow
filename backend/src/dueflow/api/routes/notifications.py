@@ -15,7 +15,7 @@ from dueflow.infrastructure.db.notification_repository import (
 )
 from dueflow.infrastructure.db.repositories import ChargeRepository
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
     NotificationProvider,
 )
 from dueflow.domain.notifications import NotificationType
@@ -42,7 +42,7 @@ def response(attempt) -> NotificationAttemptResponse:
 def list_notifications(
     session: SessionDependency,
     attempt_status: Annotated[
-        NotificationAttemptStatus | None,
+        NotificationSubmissionStatus | None,
         Query(alias="status"),
     ] = None,
     provider: NotificationProvider | None = None,
@@ -94,7 +94,7 @@ def list_charge_notifications(
     charge_id: UUID,
     session: SessionDependency,
     attempt_status: Annotated[
-        NotificationAttemptStatus | None,
+        NotificationSubmissionStatus | None,
         Query(alias="status"),
     ] = None,
     provider: NotificationProvider | None = None,

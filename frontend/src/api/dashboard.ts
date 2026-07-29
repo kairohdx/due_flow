@@ -10,8 +10,13 @@ export interface DashboardSummary {
   charges_due_today: number;
   charges_due_next_7_days: number;
   charges_evaluated_last_24h: number;
-  notifications_processed_last_24h: number;
-  notification_failures_last_24h: number;
+  submissions_succeeded_last_24h: number;
+  submissions_failed_last_24h: number;
+  submissions_unknown_last_24h: number;
+  deliveries_confirmed_last_24h: number;
+  deliveries_read_last_24h: number;
+  deliveries_failed_last_24h: number;
+  deliveries_awaiting: number;
   jobs_queued: number;
   jobs_processing: number;
   jobs_completed_last_24h: number;

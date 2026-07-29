@@ -9,7 +9,9 @@ import { useCustomer } from "../hooks/useCustomers";
 import { useNotification } from "../hooks/useNotifications";
 import {
   notificationProviderLabel,
-  notificationStatusMeta,
+  notificationDeliveryMeta,
+  notificationResultMeta,
+  notificationSubmissionMeta,
   notificationTypeLabel,
 } from "../lib/notifications";
 import { formatDateTime, formatDuration, formatPhone } from "../lib/format";
@@ -32,7 +34,15 @@ export function NotificationDetailPage() {
   }
 
   const attempt = notification.data;
-  const status = notificationStatusMeta[attempt.status];
+  const status = notificationResultMeta(attempt);
+  const submission = notificationSubmissionMeta(attempt);
+  const delivery = notificationDeliveryMeta(attempt);
+  const submissionFailed =
+    attempt.submission_status === "failed" ||
+    attempt.submission_status === "unknown";
+  const deliveryFailed = attempt.delivery_status === "failed";
+  const errorInfo =
+    attempt.delivery_error_info ?? attempt.submission_error_info;
   const providerResponse = asRecord(attempt.provider_response);
   const safeResponse = asRecord(providerResponse?.response);
   const httpStatus =
@@ -55,23 +65,44 @@ export function NotificationDetailPage() {
         actions={<StatusBadge tone={status.tone}>{status.label}</StatusBadge>}
       />
 
-      <section className={`notification-delivery delivery-${attempt.status}`}>
-        <span><Icon name={attempt.status === "failed" ? "x" : attempt.status === "pending" ? "clock" : "check"} /></span>
-        <div>
-          <strong>
-            {attempt.status === "simulated"
-              ? "Envio simulado com sucesso"
-              : attempt.status === "sent"
-                ? "Mensagem enviada"
-                : attempt.status === "failed"
-                  ? "Falha no envio"
-                  : "Aguardando confirmação"}
-          </strong>
-          <small>
-            {attempt.error ??
-              `${notificationProviderLabel[attempt.provider]} · ${formatPhone(attempt.destination)}`}
-          </small>
+      <section className="surface-card message-timeline" aria-label="Linha do tempo da mensagem">
+        <div className="section-heading">
+          <div><span className="eyebrow">Rastreabilidade</span><h2>Linha do tempo</h2></div>
         </div>
+        <ol>
+          <li className={submissionFailed ? "timeline-error" : "timeline-success"}>
+            <span><Icon name={submissionFailed ? "x" : attempt.submission_status === "pending" ? "clock" : "check"} /></span>
+            <div>
+              <strong>
+                {attempt.provider === "fake"
+                  ? "Processamento no simulador"
+                  : "Envio para a Meta"}{" "}
+                · {submission.label}
+              </strong>
+              <small>
+                {attempt.submission_error_details ??
+                  (attempt.provider === "fake"
+                    ? "Processamento concluído pelo simulador local."
+                    : `Solicitação processada em ${formatDateTime(attempt.processed_at)}.`)}
+              </small>
+            </div>
+          </li>
+          {attempt.provider === "meta" ? (
+            <li className={deliveryFailed ? "timeline-error" : attempt.delivery_status === "delivered" || attempt.delivery_status === "read" ? "timeline-success" : "timeline-pending"}>
+              <span><Icon name={deliveryFailed ? "x" : attempt.delivery_status === "pending" || attempt.delivery_status === "sent" ? "clock" : "check"} /></span>
+              <div>
+                <strong>Entrega no WhatsApp · {delivery.label}</strong>
+                <small>
+                  {attempt.delivery_status === "not_started"
+                    ? "A entrega não foi iniciada porque o envio não foi confirmado."
+                    : attempt.delivery_event_at
+                      ? `Atualizada em ${formatDateTime(attempt.delivery_event_at)}.`
+                      : "Aguardando uma atualização do WhatsApp."}
+                </small>
+              </div>
+            </li>
+          ) : null}
+        </ol>
       </section>
 
       <section className={`surface-card provider-audit provider-audit-${attempt.provider}`}>
@@ -87,9 +118,14 @@ export function NotificationDetailPage() {
           </h2>
           <p>
             {attempt.provider === "meta"
-              ? attempt.status === "sent"
-                ? "A API da Meta aceitou a mensagem e devolveu um identificador."
-                : "A tentativa utilizou a integração real com a Meta."
+              ? submissionFailed
+                ? "A solicitação não teve o aceite confirmado pela Meta; nenhuma entrega foi iniciada."
+                : deliveryFailed
+                ? "A Meta aceitou a requisição inicial, mas confirmou que a mensagem não foi entregue."
+                : attempt.delivery_status === "delivered" ||
+                    attempt.delivery_status === "read"
+                  ? "A Meta confirmou a entrega desta mensagem ao destinatário."
+                  : "A API da Meta aceitou a mensagem e devolveu um identificador."
               : "Nenhuma requisição externa foi realizada neste envio."}
           </p>
         </div>
@@ -99,8 +135,12 @@ export function NotificationDetailPage() {
             <dd>{attempt.provider === "meta" ? "Real" : "Simulado"}</dd>
           </div>
           <div>
-            <dt>Resultado</dt>
-            <dd>{status.label}</dd>
+            <dt>{attempt.provider === "fake" ? "Processamento" : "Envio para a Meta"}</dt>
+            <dd>{submission.label}</dd>
+          </div>
+          <div>
+            <dt>{attempt.provider === "fake" ? "Entrega externa" : "Entrega no WhatsApp"}</dt>
+            <dd>{attempt.provider === "fake" ? "Não se aplica" : delivery.label}</dd>
           </div>
           {httpStatus !== null ? (
             <div><dt>HTTP</dt><dd>{httpStatus}</dd></div>
@@ -112,8 +152,40 @@ export function NotificationDetailPage() {
           {correlationId ? (
             <div><dt>Correlação</dt><dd>{correlationId}</dd></div>
           ) : null}
+          {attempt.delivery_error_code ? (
+            <div><dt>Código Meta</dt><dd>{attempt.delivery_error_code}</dd></div>
+          ) : null}
         </dl>
       </section>
+
+      {errorInfo ? (
+        <section className="surface-card delivery-error-card" role="alert">
+          <span><Icon name="x" /></span>
+          <div>
+            <span className="eyebrow">
+              {deliveryFailed
+                ? "Falha na entrega"
+                : attempt.provider === "fake"
+                  ? "Falha no simulador"
+                  : "Falha no envio para a Meta"}
+            </span>
+            <h2>{errorInfo.title}</h2>
+            <p>{errorInfo.message}</p>
+            <strong className="error-recommended-action">{errorInfo.action}</strong>
+            {errorInfo.code ? (
+              <small>Código Meta {errorInfo.code}</small>
+            ) : null}
+            {!errorInfo.known ? <small>Erro ainda não catalogado.</small> : null}
+            {errorInfo.technical_title || errorInfo.technical_details ? (
+              <details className="error-technical-details">
+                <summary>Detalhes técnicos</summary>
+                {errorInfo.technical_title ? <p>{errorInfo.technical_title}</p> : null}
+                {errorInfo.technical_details ? <p>{errorInfo.technical_details}</p> : null}
+              </details>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="notification-overview-grid">
         <article className="surface-card notification-message-card">
@@ -177,6 +249,12 @@ export function NotificationDetailPage() {
         <details className="surface-card raw-payload">
           <summary>Dados técnicos sanitizados <Icon name="chevron-down" /></summary>
           <pre>{JSON.stringify(attempt.provider_response, null, 2)}</pre>
+        </details>
+      ) : null}
+      {attempt.delivery_response ? (
+        <details className="surface-card raw-payload">
+          <summary>Evento de entrega sanitizado <Icon name="chevron-down" /></summary>
+          <pre>{JSON.stringify(attempt.delivery_response, null, 2)}</pre>
         </details>
       ) : null}
     </div>

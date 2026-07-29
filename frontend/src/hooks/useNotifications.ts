@@ -5,12 +5,25 @@ import {
   getNotifications,
   type NotificationFilters,
 } from "../api/notifications";
+import { getDashboardSummary } from "../api/dashboard";
+
+export function useNotificationMetrics() {
+  return useQuery({
+    queryKey: ["dashboard", "summary"],
+    queryFn: getDashboardSummary,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+    placeholderData: (previous) => previous,
+  });
+}
 
 export function useNotifications(filters: NotificationFilters) {
   return useQuery({
     queryKey: ["notifications", filters],
     queryFn: () => getNotifications(filters),
     placeholderData: (previous) => previous,
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -29,5 +42,15 @@ export function useNotification(notificationId: string) {
     queryKey: ["notification", notificationId],
     queryFn: () => getNotification(notificationId),
     enabled: Boolean(notificationId),
+    refetchInterval: (query) => {
+      const attempt = query.state.data;
+      const awaitingMeta =
+        attempt?.provider === "meta" &&
+        attempt.submission_status === "succeeded" &&
+        (attempt.delivery_status === "pending" ||
+          attempt.delivery_status === "sent");
+      return awaitingMeta ? 5_000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 }

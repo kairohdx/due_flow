@@ -8,7 +8,7 @@ from dueflow.infrastructure.db.notification_repository import (
 )
 from dueflow.infrastructure.db.repositories import ChargeRepository
 from dueflow.domain.messaging import (
-    NotificationAttemptStatus,
+    NotificationSubmissionStatus,
     NotificationProvider,
 )
 from dueflow.domain.notifications import NotificationType
@@ -27,7 +27,7 @@ class NotificationHistoryService:
         self,
         *,
         charge_id: UUID | None,
-        status: NotificationAttemptStatus | None,
+        status: NotificationSubmissionStatus | None,
         provider: NotificationProvider | None,
         notification_type: NotificationType | None,
         processed_from: datetime | None,
@@ -55,7 +55,7 @@ class NotificationHistoryService:
         self,
         *,
         charge_id: UUID | None,
-        status: NotificationAttemptStatus | None,
+        status: NotificationSubmissionStatus | None,
         provider: NotificationProvider | None,
         notification_type: NotificationType | None,
         processed_from: datetime | None,

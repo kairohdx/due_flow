@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
 from dueflow.domain.jobs import JobRecord, JobStatus, JobType
-from dueflow.domain.messaging import NotificationAttemptStatus
+from dueflow.domain.messaging import NotificationSubmissionStatus
 from dueflow.domain.notifications import (
     DecisionKind,
     NotificationAction,
@@ -56,7 +56,7 @@ class JobTraceResponse(BaseModel):
 
 class JobNotificationResponse(BaseModel):
     attempt_id: UUID
-    status: NotificationAttemptStatus
+    submission_status: NotificationSubmissionStatus
     provider_message_id: str | None
     idempotency_key: str
     deduplicated: bool

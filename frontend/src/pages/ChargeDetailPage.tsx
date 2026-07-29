@@ -22,7 +22,7 @@ import { chargeDeadlineState, chargeStatusMeta } from "../lib/charges";
 import { formatCurrency, formatDate, formatDateTime } from "../lib/format";
 import {
   notificationProviderLabel,
-  notificationStatusMeta,
+  notificationResultMeta,
   notificationTypeLabel,
 } from "../lib/notifications";
 
@@ -230,7 +230,7 @@ export function ChargeDetailPage() {
             {notifications.data?.items.length ? (
               <div className="charge-notifications-list">
                 {notifications.data.items.map((attempt) => {
-                  const attemptStatus = notificationStatusMeta[attempt.status];
+                  const attemptStatus = notificationResultMeta(attempt);
                   return (
                     <Link
                       className="charge-notification-row"
