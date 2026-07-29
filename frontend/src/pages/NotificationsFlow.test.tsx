@@ -135,8 +135,43 @@ it("mostra conteúdo, rastreabilidade e vínculos no detalhe", async () => {
   expect(await screen.findByText("Padaria Pão Dourado")).toBeInTheDocument();
   expect(screen.getByText("Execução job-1")).toBeInTheDocument();
   expect(screen.getByText("DueTodayPolicy")).toBeInTheDocument();
-  await user.click(screen.getByText("Resposta do provider"));
+  expect(screen.getByText("Simulador local")).toBeInTheDocument();
+  expect(screen.getByText("Simulado")).toBeInTheDocument();
+  await user.click(screen.getByText("Dados técnicos sanitizados"));
   expect(screen.getByText(/simulated/)).toBeInTheDocument();
+});
+
+it("explica o aceite e o retorno sanitizado da Meta", async () => {
+  vi.mocked(notificationsApi.getNotification).mockResolvedValue({
+    ...attempt,
+    provider: "meta",
+    status: "sent",
+    provider_message_id: "wamid.meta-test",
+    provider_response: {
+      request: { to: "55*******0000", type: "text" },
+      response: {
+        messages: [{ id: "wamid.meta-test" }],
+        http_status: 200,
+        correlation_id: "notification-1",
+      },
+    },
+  });
+  wrapper(
+    "/notificacoes/notification-1",
+    <Route path="/notificacoes/:notificationId" element={<NotificationDetailPage />} />,
+  );
+
+  expect(
+    await screen.findByText("WhatsApp Cloud API da Meta"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "A API da Meta aceitou a mensagem e devolveu um identificador.",
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Real")).toBeInTheDocument();
+  expect(screen.getByText("200")).toBeInTheDocument();
+  expect(screen.getAllByText("wamid.meta-test").length).toBeGreaterThan(0);
 });
 
 it("diferencia visualmente uma falha", async () => {

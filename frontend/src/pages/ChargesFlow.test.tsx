@@ -4,7 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import * as chargesApi from "../api/charges";
 import * as customersApi from "../api/customers";
-import type { Charge, Customer } from "../api/types";
+import * as notificationsApi from "../api/notifications";
+import type { Charge, Customer, NotificationAttempt } from "../api/types";
 import { ChargeCreatePage } from "./ChargeCreatePage";
 import { ChargeDetailPage } from "./ChargeDetailPage";
 import { ChargesPage } from "./ChargesPage";
@@ -27,6 +28,10 @@ vi.mock("../api/customers", () => ({
   updateCustomer: vi.fn(),
 }));
 
+vi.mock("../api/notifications", () => ({
+  getChargeNotifications: vi.fn(),
+}));
+
 const customer: Customer = {
   id: "customer-1",
   name: "Padaria Pão Dourado",
@@ -46,6 +51,27 @@ const charge: Charge = {
   reminder_days_before: 3,
   created_at: "2026-07-29T12:00:00Z",
   updated_at: "2026-07-29T12:00:00Z",
+};
+
+const metaAttempt: NotificationAttempt = {
+  id: "notification-1",
+  charge_id: charge.id,
+  processing_job_id: "job-1",
+  notification_type: "due_today",
+  provider: "meta",
+  destination: customer.phone,
+  message: "Sua cobrança vence hoje.",
+  status: "sent",
+  provider_message_id: "wamid.meta-test",
+  error: null,
+  idempotency_key: "charge-1:2026-07-31:due_today",
+  policy_name: "DueTodayPolicy",
+  decision_reason: "charge_due_today",
+  trace: null,
+  provider_response: {
+    response: { http_status: 200, correlation_id: "notification-1" },
+  },
+  processed_at: "2026-07-29T12:01:00Z",
 };
 
 function wrapper(initialEntry: string, routes: React.ReactNode) {
@@ -89,6 +115,13 @@ beforeEach(() => {
     pages: 1,
   });
   vi.mocked(customersApi.getCustomer).mockResolvedValue(customer);
+  vi.mocked(notificationsApi.getChargeNotifications).mockResolvedValue({
+    items: [metaAttempt],
+    page: 1,
+    page_size: 5,
+    total: 1,
+    pages: 1,
+  });
 });
 
 it("lista cobranças e aplica filtros persistidos na URL", async () => {
@@ -152,6 +185,11 @@ it("confirma a verificação assíncrona e o pagamento", async () => {
   );
 
   expect(await screen.findByText("Padaria Pão Dourado")).toBeInTheDocument();
+  expect(await screen.findByText("Histórico de envios")).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: /WhatsApp Meta/ }),
+  ).toHaveAttribute("href", "/notificacoes/notification-1");
+  expect(screen.getByText("Enviada")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Verificar agora" }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Adicionar à fila" }));

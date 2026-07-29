@@ -716,12 +716,61 @@ Cada etapa termina com uma verificação executável.
 
 ### Etapa 8 — WhatsApp real
 
-- implementar cliente Meta e sanitização;
-- testar via HTTP mock;
-- validar manualmente com destinatário autorizado;
-- documentar configuração e fallback simulado.
+#### Etapa 8.1 — Provider Meta, segurança e auditoria — concluída
 
-**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha fica auditável.
+- [x] implementar cliente Meta e sanitização;
+- [x] selecionar `fake` ou `meta` por configuração do worker;
+- [x] validar credenciais somente quando o provider Meta estiver habilitado;
+- [x] tratar timeout, rede, erro HTTP e resposta inválida;
+- [x] testar via HTTP mock;
+- [x] exibir provider, aceite HTTP, ID da mensagem e resposta sanitizada no painel;
+- [x] documentar configuração, teste manual e fallback simulado;
+- [ ] validar manualmente com credencial e destinatário autorizados.
+
+**Pronto quando:** a integração real pode ser habilitada somente por ambiente e uma falha de requisição fica auditável. Implementação validada em 29/07/2026 com seleção segura no worker, credenciais obrigatórias apenas no modo Meta, timeout explícito, respostas sanitizadas, histórico visível no detalhe da cobrança, identificação clara do provider e retorno Meta legível no painel, além de testes HTTP de sucesso, rejeição, timeout e contrato inválido. O envio manual permanece pendente até a disponibilização de credencial e destinatário autorizados.
+
+#### Etapa 8.2 — Webhooks e estados de entrega
+
+- criar endpoint público para verificação `hub.challenge` e recebimento de eventos;
+- validar `X-Hub-Signature-256` com o App Secret antes de processar o corpo;
+- localizar a tentativa pelo `provider_message_id` (`wamid`);
+- distinguir requisição aceita de entrega `sent`, `delivered`, `read` ou `failed`;
+- persistir timestamp, código, título e detalhes sanitizados da falha;
+- ignorar campos internos e sensíveis que não sejam necessários para a auditoria;
+- tratar eventos duplicados, desconhecidos e recebidos fora de ordem;
+- atualizar detalhe, listagem, polling e métricas para refletir o estado de entrega;
+- cobrir verificação, assinatura, sucesso, falha, duplicação e ordenação com testes.
+
+**Pronto quando:** o painel não apresenta uma mensagem como entregue apenas porque a requisição inicial retornou sucesso, e um webhook `failed` fica visível e auditável sem expor dados sensíveis.
+
+#### Etapa 8.3 — Retentativa manual auditável
+
+- separar a identidade lógica do lembrete da identidade física de cada tentativa;
+- permitir múltiplas tentativas numeradas sem perder o histórico anterior;
+- liberar retentativa somente para falhas confirmadas;
+- manter bloqueadas mensagens aceitas, entregues, lidas ou com resultado incerto;
+- revalidar cobrança pendente, cliente ativo e regras aplicáveis antes do reenvio;
+- impedir duas retentativas concorrentes da mesma notificação;
+- criar endpoint e job específicos para retentativa manual;
+- registrar tentativa de origem, usuário solicitante, horário e resultado;
+- adicionar **Tentar novamente** no detalhe da mensagem e da cobrança;
+- cobrir idempotência, concorrência, elegibilidade e histórico com testes.
+
+**Pronto quando:** uma entrega confirmada como falha pode ser reenviada manualmente sem apagar evidências, duplicar uma entrega válida ou iniciar retries automáticos infinitos.
+
+#### Etapa 8.4 — Templates aprovados e janela de 24 horas
+
+- configurar nome, idioma e parâmetros do template por ambiente;
+- implementar envio de template pela mesma porta do provider Meta;
+- selecionar template para mensagens iniciadas fora da janela de atendimento;
+- mapear erros como `131047` para uma orientação clara no painel;
+- bloquear retry de texto livre quando ele certamente repetiria a mesma falha;
+- oferecer **Reenviar com template** quando houver template compatível configurado;
+- manter o conteúdo renderizado e os parâmetros usados na trilha de auditoria;
+- testar payload, seleção, ausência de configuração e rejeição da Meta via HTTP mock;
+- validar manualmente um template aprovado com destinatário autorizado.
+
+**Pronto quando:** lembretes iniciados pela empresa podem ser enviados legalmente fora da janela de 24 horas, e o usuário entende quando deve usar texto livre ou template.
 
 ### Etapa 9 — Empacotamento, demo e deploy
 
@@ -789,4 +838,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 8 — WhatsApp real**: implementar o provider Meta mantendo o provider simulado como fallback seguro.
+Iniciar a **Etapa 8.2 — Webhooks e estados de entrega**: receber os retornos assíncronos da Meta e separar aceite da requisição do resultado real da entrega.

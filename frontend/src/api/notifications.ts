@@ -45,3 +45,9 @@ export function getNotification(
 ): Promise<NotificationAttempt> {
   return apiFetch(`/notifications/${notificationId}`);
 }
+
+export function getChargeNotifications(
+  chargeId: string,
+): Promise<Page<NotificationAttempt>> {
+  return apiFetch(`/charges/${chargeId}/notifications?page=1&page_size=5`);
+}

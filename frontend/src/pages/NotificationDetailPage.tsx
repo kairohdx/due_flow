@@ -14,6 +14,12 @@ import {
 } from "../lib/notifications";
 import { formatDateTime, formatDuration, formatPhone } from "../lib/format";
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 export function NotificationDetailPage() {
   const { notificationId = "" } = useParams();
   const notification = useNotification(notificationId);
@@ -27,6 +33,16 @@ export function NotificationDetailPage() {
 
   const attempt = notification.data;
   const status = notificationStatusMeta[attempt.status];
+  const providerResponse = asRecord(attempt.provider_response);
+  const safeResponse = asRecord(providerResponse?.response);
+  const httpStatus =
+    typeof safeResponse?.http_status === "number"
+      ? safeResponse.http_status
+      : null;
+  const correlationId =
+    typeof safeResponse?.correlation_id === "string"
+      ? safeResponse.correlation_id
+      : null;
   return (
     <div className="page-stack entity-page notification-detail-page">
       <Link className="back-link" to="/notificacoes">
@@ -58,6 +74,47 @@ export function NotificationDetailPage() {
         </div>
       </section>
 
+      <section className={`surface-card provider-audit provider-audit-${attempt.provider}`}>
+        <span className="provider-audit-icon">
+          <Icon name={attempt.provider === "meta" ? "message" : "sparkles"} />
+        </span>
+        <div className="provider-audit-copy">
+          <span className="eyebrow">Origem do envio</span>
+          <h2>
+            {attempt.provider === "meta"
+              ? "WhatsApp Cloud API da Meta"
+              : "Simulador local"}
+          </h2>
+          <p>
+            {attempt.provider === "meta"
+              ? attempt.status === "sent"
+                ? "A API da Meta aceitou a mensagem e devolveu um identificador."
+                : "A tentativa utilizou a integração real com a Meta."
+              : "Nenhuma requisição externa foi realizada neste envio."}
+          </p>
+        </div>
+        <dl className="provider-audit-facts">
+          <div>
+            <dt>Modo</dt>
+            <dd>{attempt.provider === "meta" ? "Real" : "Simulado"}</dd>
+          </div>
+          <div>
+            <dt>Resultado</dt>
+            <dd>{status.label}</dd>
+          </div>
+          {httpStatus !== null ? (
+            <div><dt>HTTP</dt><dd>{httpStatus}</dd></div>
+          ) : null}
+          <div>
+            <dt>ID da mensagem</dt>
+            <dd>{attempt.provider_message_id ?? "Não informado"}</dd>
+          </div>
+          {correlationId ? (
+            <div><dt>Correlação</dt><dd>{correlationId}</dd></div>
+          ) : null}
+        </dl>
+      </section>
+
       <section className="notification-overview-grid">
         <article className="surface-card notification-message-card">
           <div className="section-heading">
@@ -66,7 +123,7 @@ export function NotificationDetailPage() {
           <blockquote>{attempt.message}</blockquote>
           <dl className="technical-details">
             <div><dt>Destino</dt><dd>{formatPhone(attempt.destination)}</dd></div>
-            <div><dt>Canal</dt><dd>{notificationProviderLabel[attempt.provider]}</dd></div>
+            <div><dt>Provider utilizado</dt><dd>{notificationProviderLabel[attempt.provider]}</dd></div>
             <div><dt>ID do provider</dt><dd>{attempt.provider_message_id ?? "—"}</dd></div>
           </dl>
         </article>
@@ -118,7 +175,7 @@ export function NotificationDetailPage() {
 
       {attempt.provider_response ? (
         <details className="surface-card raw-payload">
-          <summary>Resposta do provider <Icon name="chevron-down" /></summary>
+          <summary>Dados técnicos sanitizados <Icon name="chevron-down" /></summary>
           <pre>{JSON.stringify(attempt.provider_response, null, 2)}</pre>
         </details>
       ) : null}

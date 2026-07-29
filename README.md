@@ -249,6 +249,58 @@ GET /charges/{id}/notifications
 
 Uma chave formada por cobrança, vencimento e tipo de notificação impede o envio repetido. Cobranças não elegíveis aparecem no trace do job, mas não geram `NotificationAttempt`.
 
+## Provider Meta
+
+O worker também pode enviar mensagens de texto pela API oficial do WhatsApp
+Cloud. O modo real é habilitado apenas por ambiente e exige todas as
+configurações abaixo:
+
+```dotenv
+MESSAGE_PROVIDER=meta
+META_WHATSAPP_TOKEN=
+META_WHATSAPP_PHONE_NUMBER_ID=
+META_GRAPH_API_VERSION=
+META_GRAPH_API_BASE_URL=https://graph.facebook.com
+META_REQUEST_TIMEOUT_SECONDS=10
+```
+
+`META_GRAPH_API_VERSION` deve ser preenchida explicitamente com a versão
+habilitada na aplicação da Meta, no formato `vNN.N`. O projeto não fixa uma
+versão silenciosamente para evitar que uma atualização da Graph API altere o
+comportamento sem revisão.
+
+Antes de iniciar o worker, é possível fazer um envio deliberado para um
+destinatário autorizado:
+
+```powershell
+cd backend
+python -m dueflow.cli test-meta --to +5511999999999
+```
+
+O comando não é executado pela suíte e mascara o telefone na saída. Tokens,
+headers de autorização, telefones presentes na resposta e respostas brutas de
+erro não são persistidos. Timeout, falha de rede, resposta inválida e erros
+HTTP são convertidos em mensagens seguras e auditáveis.
+
+O detalhe de cada cobrança apresenta seu **Histórico de envios** com provider e
+resultado. Ao abrir uma tentativa, o painel informa claramente se o envio foi
+simulado ou realizado pela Meta, mostra o status HTTP, o identificador devolvido
+pela Meta e a correlação. O JSON completo permanece disponível em **Dados
+técnicos sanitizados**.
+
+Para voltar ao modo de demonstração sem rede:
+
+```dotenv
+MESSAGE_PROVIDER=fake
+```
+
+Mensagens de texto livres dependem de uma conversa aberta na janela permitida
+pela Meta. Para iniciar conversas fora dessa janela, será necessário cadastrar
+e usar um template aprovado compatível com as mensagens do DueFlow.
+
+Referências oficiais: [envio de mensagens pela Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-messages)
+e [versionamento da Graph API](https://developers.facebook.com/docs/graph-api/changelog/versions).
+
 ## Visão geral e diagnóstico operacional
 
 O resumo destinado ao polling da tela inicial está disponível em:
