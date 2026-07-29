@@ -124,10 +124,10 @@ def test_enabled_automation_creates_and_processes_job(
     assert completed["payload"]["reference_date"] == "2026-07-29"
     assert completed["retain_deduplication_key"] is True
     assert completed["result"]["simulated"] == 1
-    assert attempts[0]["status"] == "simulated"
+    assert attempts["items"][0]["status"] == "simulated"
     assert state["last_enqueued_at"] is not None
     assert state["next_run_at"] is not None
-    assert [item["id"] for item in automatic_jobs] == [str(job_id)]
+    assert [item["id"] for item in automatic_jobs["items"]] == [str(job_id)]
 
 
 def test_disabled_automation_does_not_create_job(database) -> None:

@@ -31,9 +31,22 @@ class JobQueue(Protocol):
         *,
         status: JobStatus | None,
         origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
         limit: int,
         offset: int,
     ) -> list[JobRecord]: ...
+
+    def count(
+        self,
+        *,
+        status: JobStatus | None,
+        origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> int: ...
 
     def claim(self, *, worker_id: str, now: datetime) -> JobRecord | None: ...
 

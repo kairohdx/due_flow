@@ -635,14 +635,14 @@ Cada etapa termina com uma verificação executável.
 
 **Pronto quando:** o usuário entra, recarrega a página sem perder a sessão, renova o acesso e o logout invalida o refresh token. Validado em 29/07/2026 com 65 testes, rotação com bloqueio de replay, revogação e migration alinhada.
 
-#### Etapa 7.2 — Contratos para consumo do frontend
+#### Etapa 7.2 — Contratos para consumo do frontend — concluída
 
-- padronizar todas as listagens no envelope paginado, com 25 itens por padrão e máximo;
-- adicionar filtros necessários à UI e detalhe de notificação;
-- criar `/dashboard/summary` com métricas e janela móvel de 24 horas;
-- garantir que o detalhe do job contenha dados suficientes para sua inspeção.
+- [x] padronizar todas as listagens no envelope paginado, com 25 itens por padrão e máximo;
+- [x] adicionar filtros necessários à UI e detalhe de notificação;
+- [x] criar `/dashboard/summary` com métricas e janela móvel de 24 horas;
+- [x] garantir que o detalhe do job contenha dados suficientes para sua inspeção.
 
-**Pronto quando:** OpenAPI descreve paginação, filtros, métricas e detalhes sem o frontend precisar agregar tabelas ou interpretar JSON interno.
+**Pronto quando:** OpenAPI descreve paginação, filtros, métricas e detalhes sem o frontend precisar agregar tabelas ou interpretar JSON interno. Validado em 29/07/2026 com 68 testes, envelope uniforme nas quatro listagens, métricas determinísticas e resultado do job tipado no OpenAPI.
 
 #### Etapa 7.3 — Fundação do frontend e sessão
 
@@ -780,4 +780,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.2 — Contratos para consumo do frontend**: estabilizar paginação, filtros, métricas do dashboard e detalhes consumidos pela interface antes de criar o projeto React.
+Iniciar a **Etapa 7.3 — Fundação do frontend e sessão**: criar o projeto React/Vite, adaptar os padrões de autenticação do painel de referência e estabelecer o shell visual moderno do DueFlow.

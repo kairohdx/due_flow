@@ -68,12 +68,35 @@ class ProcessingService:
         *,
         status: JobStatus | None,
         origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
         limit: int,
         offset: int,
     ) -> list[JobRecord]:
         return self.queue.list(
             status=status,
             origin=origin,
+            job_type=job_type,
+            created_from=created_from,
+            created_to=created_to,
             limit=limit,
             offset=offset,
+        )
+
+    def count_jobs(
+        self,
+        *,
+        status: JobStatus | None,
+        origin: str | None,
+        job_type: JobType | None,
+        created_from: datetime | None,
+        created_to: datetime | None,
+    ) -> int:
+        return self.queue.count(
+            status=status,
+            origin=origin,
+            job_type=job_type,
+            created_from=created_from,
+            created_to=created_to,
         )

@@ -9,6 +9,7 @@ from dueflow.api.schemas.customers import (
     CustomerResponse,
     CustomerUpdate,
 )
+from dueflow.api.schemas.common import Page
 from dueflow.application.customers import CustomerService
 from dueflow.infrastructure.db.dependencies import get_session
 from dueflow.infrastructure.db.repositories import CustomerRepository
@@ -34,14 +35,29 @@ def create_customer(
     return CustomerResponse.model_validate(customer)
 
 
-@router.get("", response_model=list[CustomerResponse])
+@router.get("", response_model=Page[CustomerResponse])
 def list_customers(
     session: SessionDependency,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> list[CustomerResponse]:
-    customers = service(session).list(limit=limit, offset=offset)
-    return [CustomerResponse.model_validate(customer) for customer in customers]
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=25)] = 25,
+    active: bool | None = None,
+    search: Annotated[str | None, Query(min_length=1, max_length=160)] = None,
+) -> Page[CustomerResponse]:
+    target = service(session)
+    customers = target.list(
+        active=active,
+        search=search,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+    )
+    return Page[CustomerResponse].create(
+        items=[
+            CustomerResponse.model_validate(customer) for customer in customers
+        ],
+        page=page,
+        page_size=page_size,
+        total=target.count(active=active, search=search),
+    )
 
 
 @router.get("/{customer_id}", response_model=CustomerResponse)
@@ -61,4 +77,3 @@ def update_customer(
 ) -> CustomerResponse:
     customer = service(session).update(customer_id, **payload.model_dump())
     return CustomerResponse.model_validate(customer)
-

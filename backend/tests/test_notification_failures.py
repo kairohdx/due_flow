@@ -66,7 +66,8 @@ def test_provider_failure_is_persisted_without_changing_charge(
 
     assert job["status"] == "completed"
     assert job["result"]["notification_failed"] == 1
-    assert attempts[0]["status"] == "failed"
-    assert "falha controlada do provider" in attempts[0]["error"]
-    assert attempts[0]["provider_response"] is None
+    attempt = attempts["items"][0]
+    assert attempt["status"] == "failed"
+    assert "falha controlada do provider" in attempt["error"]
+    assert attempt["provider_response"] is None
     assert current_charge["status"] == "pending"

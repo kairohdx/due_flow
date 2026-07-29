@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -5,6 +6,8 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from dueflow.api.schemas.charges import ChargeCreate, ChargeResponse, ChargeUpdate
+from dueflow.api.schemas.common import Page
+from dueflow.api.query_validation import validate_range
 from dueflow.application.charges import ChargeService
 from dueflow.domain.charges import ChargeStatus
 from dueflow.infrastructure.db.dependencies import get_session
@@ -38,22 +41,41 @@ def create_charge(
     return ChargeResponse.model_validate(charge)
 
 
-@router.get("", response_model=list[ChargeResponse])
+@router.get("", response_model=Page[ChargeResponse])
 def list_charges(
     session: SessionDependency,
     request: Request,
     charge_status: Annotated[ChargeStatus | None, Query(alias="status")] = None,
     customer_id: UUID | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> list[ChargeResponse]:
-    charges = service(session, request).list(
+    due_from: date | None = None,
+    due_to: date | None = None,
+    search: Annotated[str | None, Query(min_length=1, max_length=255)] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=25)] = 25,
+) -> Page[ChargeResponse]:
+    validate_range(due_from, due_to)
+    target = service(session, request)
+    charges = target.list(
         status=charge_status,
         customer_id=customer_id,
-        limit=limit,
-        offset=offset,
+        due_from=due_from,
+        due_to=due_to,
+        search=search,
+        limit=page_size,
+        offset=(page - 1) * page_size,
     )
-    return [ChargeResponse.model_validate(charge) for charge in charges]
+    return Page[ChargeResponse].create(
+        items=[ChargeResponse.model_validate(charge) for charge in charges],
+        page=page,
+        page_size=page_size,
+        total=target.count(
+            status=charge_status,
+            customer_id=customer_id,
+            due_from=due_from,
+            due_to=due_to,
+            search=search,
+        ),
+    )
 
 
 @router.get("/{charge_id}", response_model=ChargeResponse)

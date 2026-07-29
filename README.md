@@ -80,10 +80,10 @@ O telefone deve incluir o código do país e é normalizado para E.164. Exemplo:
 - `POST /charges/{id}/mark-paid`
 - `POST /charges/{id}/cancel`
 
-As listagens aceitam `limit` e `offset`. Cobranças também podem ser filtradas por `status` e `customer_id`:
+Todas as listagens aceitam `page` e `page_size`, com 25 itens por padrão e no máximo. A resposta contém `items`, `page`, `page_size`, `total` e `pages`. Cobranças também podem ser filtradas por `status`, `customer_id`, período de vencimento e busca por descrição:
 
 ```text
-GET /charges?status=pending&customer_id=<uuid>
+GET /charges?status=pending&customer_id=<uuid>&page=1&page_size=25
 ```
 
 Valores monetários devem ser enviados como string decimal:
@@ -154,6 +154,8 @@ GET /processing/jobs/{job_id}
 
 `GET /processing/jobs` aceita filtros `origin=manual|automatic` e `status`. O estado percorre `queued`, `processing` e `completed`. Falhas definitivas terminam em `failed`. Em desenvolvimento e teste, o corpo pode receber `reference_date` para demonstrações determinísticas; esse parâmetro é rejeitado em produção.
 
+O detalhe do job também informa origem, cobrança individual associada, duração, estado terminal e um resultado tipado com decisões, tentativas e trace das policies.
+
 ## Automação
 
 A automação começa pausada. Consulte e controle pelo painel ou API:
@@ -191,10 +193,21 @@ As tentativas ficam disponíveis em:
 
 ```text
 GET /notifications
+GET /notifications/{id}
 GET /charges/{id}/notifications
 ```
 
 Uma chave formada por cobrança, vencimento e tipo de notificação impede o envio repetido. Cobranças não elegíveis aparecem no trace do job, mas não geram `NotificationAttempt`.
+
+## Dashboard operacional
+
+O resumo destinado ao polling da tela inicial está disponível em:
+
+```text
+GET /dashboard/summary
+```
+
+A resposta informa clientes cadastrados, jobs aguardando/em processamento e totais de concluídos, retries e falhas na janela móvel das últimas 24 horas. `generated_at` e `window_started_at` deixam o período explícito para a interface.
 
 ## Idioma da documentação
 
