@@ -46,6 +46,9 @@ export function AppShell() {
     .map((part) => part[0])
     .join("")
     .toUpperCase();
+  const currentTitle =
+    routeTitles[location.pathname] ??
+    (location.pathname.startsWith("/clientes") ? "Clientes" : "DueFlow");
 
   return (
     <div className={`app-shell ${menuOpen ? "menu-open" : ""}`}>
@@ -107,7 +110,7 @@ export function AppShell() {
             </button>
             <div>
               <span className="topbar-context">Painel</span>
-              <strong>{routeTitles[location.pathname] ?? "DueFlow"}</strong>
+              <strong>{currentTitle}</strong>
             </div>
           </div>
           <div className="topbar-actions">
