@@ -31,3 +31,28 @@ export function formatInterval(seconds: number): string {
   }
   return `${seconds} segundos`;
 }
+
+export function formatCurrency(value: string): string {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(Number(value));
+}
+
+export function formatDate(value: string): string {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR").format(
+    new Date(year, month - 1, day),
+  );
+}
+
+export function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 13) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length === 12) {
+    return `+${digits.slice(0, 2)} (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
+  }
+  return value;
+}

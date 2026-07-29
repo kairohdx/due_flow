@@ -42,3 +42,32 @@ export interface JobAccepted {
   status: JobStatus;
   created: boolean;
 }
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerPayload {
+  name: string;
+  phone: string;
+  active: boolean;
+}
+
+export type ChargeStatus = "pending" | "paid" | "canceled";
+
+export interface Charge {
+  id: string;
+  customer_id: string;
+  description: string;
+  amount: string;
+  due_date: string;
+  status: ChargeStatus;
+  reminder_days_before: number;
+  created_at: string;
+  updated_at: string;
+}

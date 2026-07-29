@@ -4,6 +4,9 @@ import { useAuthBootstrap } from "./auth/useAuthBootstrap";
 import { AppShell } from "./components/AppShell";
 import { FoundationPage } from "./pages/FoundationPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { CustomerCreatePage } from "./pages/CustomerCreatePage";
+import { CustomerDetailPage } from "./pages/CustomerDetailPage";
+import { CustomersPage } from "./pages/CustomersPage";
 import { LoginPage } from "./pages/LoginPage";
 
 export default function App() {
@@ -19,7 +22,9 @@ export default function App() {
         }
       >
         <Route index element={<DashboardPage />} />
-        <Route path="clientes" element={<FoundationPage type="customers" />} />
+        <Route path="clientes" element={<CustomersPage />} />
+        <Route path="clientes/novo" element={<CustomerCreatePage />} />
+        <Route path="clientes/:customerId" element={<CustomerDetailPage />} />
         <Route path="cobrancas" element={<FoundationPage type="charges" />} />
         <Route path="fila" element={<FoundationPage type="jobs" />} />
         <Route

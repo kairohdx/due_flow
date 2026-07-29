@@ -668,11 +668,11 @@ Cada etapa termina com uma verificação executável.
 
 #### Etapa 7.5 — Clientes
 
-- implementar listagem paginada, criação e filtros;
-- implementar detalhe e edição;
-- mostrar cobranças relacionadas no detalhe.
+- [x] implementar listagem paginada, criação e filtros;
+- [x] implementar detalhe e edição;
+- [x] mostrar cobranças relacionadas no detalhe.
 
-**Pronto quando:** o ciclo de clientes funciona integralmente pela interface.
+**Pronto quando:** o ciclo de clientes funciona integralmente pela interface. Validado em 29/07/2026 com 11 testes de frontend, filtros e paginação persistidos na URL, formulário reutilizável de criação e edição, cobranças relacionadas no detalhe, lint e build de produção.
 
 #### Etapa 7.6 — Cobranças
 
@@ -783,4 +783,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.5 — Clientes**: conectar listagem paginada, busca, criação, detalhe, edição e cobranças relacionadas ao shell já implementado.
+Iniciar a **Etapa 7.6 — Cobranças**: conectar listagem paginada, filtros, criação, detalhe, edição e ações operacionais ao shell já implementado.

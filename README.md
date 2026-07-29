@@ -75,6 +75,8 @@ O painel fica disponível em `http://localhost:5173`. A fundação inclui login,
 
 A tela inicial já funciona como dashboard operacional: consulta as métricas a cada 10 segundos, controla a automação, dispara processamento manual e acompanha o job criado a cada 2 segundos até sua conclusão ou falha. O polling pausa quando a aba não está visível e é atualizado ao voltar ao foco.
 
+A área de clientes oferece busca, filtro por situação e paginação persistidos na URL, além de criação, detalhe, edição e consulta das cobranças relacionadas.
+
 Para validar o frontend:
 
 ```powershell
