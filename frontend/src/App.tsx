@@ -7,6 +7,9 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { CustomerCreatePage } from "./pages/CustomerCreatePage";
 import { CustomerDetailPage } from "./pages/CustomerDetailPage";
 import { CustomersPage } from "./pages/CustomersPage";
+import { ChargeCreatePage } from "./pages/ChargeCreatePage";
+import { ChargeDetailPage } from "./pages/ChargeDetailPage";
+import { ChargesPage } from "./pages/ChargesPage";
 import { LoginPage } from "./pages/LoginPage";
 
 export default function App() {
@@ -25,7 +28,9 @@ export default function App() {
         <Route path="clientes" element={<CustomersPage />} />
         <Route path="clientes/novo" element={<CustomerCreatePage />} />
         <Route path="clientes/:customerId" element={<CustomerDetailPage />} />
-        <Route path="cobrancas" element={<FoundationPage type="charges" />} />
+        <Route path="cobrancas" element={<ChargesPage />} />
+        <Route path="cobrancas/nova" element={<ChargeCreatePage />} />
+        <Route path="cobrancas/:chargeId" element={<ChargeDetailPage />} />
         <Route path="fila" element={<FoundationPage type="jobs" />} />
         <Route
           path="notificacoes"

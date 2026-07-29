@@ -676,11 +676,11 @@ Cada etapa termina com uma verificação executável.
 
 #### Etapa 7.6 — Cobranças
 
-- implementar listagem paginada e filtros de situação;
-- implementar criação, detalhe e edição;
-- adicionar ações pagar, cancelar e processar com confirmação e feedback.
+- [x] implementar listagem paginada e filtros de situação;
+- [x] implementar criação, detalhe e edição;
+- [x] adicionar ações pagar, cancelar e processar com confirmação e feedback.
 
-**Pronto quando:** o ciclo principal de cobrança funciona integralmente pela interface.
+**Pronto quando:** o ciclo principal de cobrança funciona integralmente pela interface. Validado em 29/07/2026 com 14 testes de frontend, filtros e paginação persistidos na URL, ações operacionais confirmadas em diálogo, feedback do job assíncrono, lint e build de produção.
 
 #### Etapa 7.7 — Fila e inspeção do job
 
@@ -783,4 +783,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.6 — Cobranças**: conectar listagem paginada, filtros, criação, detalhe, edição e ações operacionais ao shell já implementado.
+Iniciar a **Etapa 7.7 — Fila e inspeção do job**: implementar acompanhamento paginado da fila, polling adaptativo e detalhe auditável de cada turno.

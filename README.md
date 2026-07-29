@@ -77,6 +77,8 @@ A tela inicial já funciona como dashboard operacional: consulta as métricas a 
 
 A área de clientes oferece busca, filtro por situação e paginação persistidos na URL, além de criação, detalhe, edição e consulta das cobranças relacionadas.
 
+A área de cobranças oferece busca, filtros por situação e vencimento, criação, detalhe e edição. Cobranças pendentes podem ser marcadas como pagas, canceladas ou enviadas para processamento assíncrono, sempre com confirmação e feedback na interface.
+
 Para validar o frontend:
 
 ```powershell

@@ -61,7 +61,11 @@ const chargeColumns: TableColumn<Charge>[] = [
     key: "action",
     label: "",
     align: "right",
-    render: () => <span className="muted-label">Detalhe na Etapa 7.6</span>,
+    render: (charge) => (
+      <Link className="table-action" to={`/cobrancas/${charge.id}`}>
+        Ver detalhes <Icon name="arrow-right" />
+      </Link>
+    ),
   },
 ];
 
@@ -170,7 +174,15 @@ export function CustomerDetailPage() {
           <EmptyState
             icon="credit-card"
             title="Nenhuma cobrança cadastrada"
-            description="A criação de cobranças será conectada na próxima etapa."
+            description="Cadastre uma cobrança para iniciar o acompanhamento."
+            action={
+              <Link
+                className="button button-primary"
+                to={`/cobrancas/nova?customer_id=${data.id}`}
+              >
+                Nova cobrança
+              </Link>
+            }
           />
         ) : null}
         {charges.data?.items.length ? (
