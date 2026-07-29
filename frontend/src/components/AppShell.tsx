@@ -52,6 +52,8 @@ export function AppShell() {
       ? "Clientes"
       : location.pathname.startsWith("/cobrancas")
         ? "Cobranças"
+        : location.pathname.startsWith("/fila")
+          ? "Execuções da automação"
         : "DueFlow");
 
   return (

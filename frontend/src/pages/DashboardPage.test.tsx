@@ -40,6 +40,7 @@ const completedJob: Job = {
   started_at: "2026-07-29T12:00:00Z",
   finished_at: "2026-07-29T12:00:00.420Z",
   error: null,
+  retain_deduplication_key: true,
   created_at: "2026-07-29T12:00:00Z",
   updated_at: "2026-07-29T12:00:00.420Z",
 };
@@ -123,7 +124,7 @@ it("apresenta métricas, automação e atividade recente", async () => {
   expect(await screen.findByText("Olá, Maria.")).toBeInTheDocument();
   expect(await screen.findByText("18")).toBeInTheDocument();
   expect(screen.getByText("Clientes cadastrados")).toBeInTheDocument();
-  expect(screen.getByText("Cobranças pendentes")).toBeInTheDocument();
+  expect(screen.getByText("Cobranças em aberto")).toBeInTheDocument();
   expect(screen.getAllByText("Cobranças vencidas")).toHaveLength(2);
   expect(screen.getAllByText("Vencem hoje")).toHaveLength(2);
   expect(screen.getByText("Vencem em até 7 dias")).toBeInTheDocument();

@@ -96,7 +96,7 @@ it("lista cobranças e aplica filtros persistidos na URL", async () => {
   wrapper("/cobrancas", <Route path="/cobrancas" element={<ChargesPage />} />);
 
   expect(await screen.findByText("Mensalidade de julho")).toBeInTheDocument();
-  await user.selectOptions(screen.getByLabelText("Filtrar situação"), "pending");
+  await user.selectOptions(screen.getByLabelText("Filtrar estado"), "pending");
   await user.type(screen.getByLabelText("Buscar cobranças"), "julho");
   await user.keyboard("{Enter}");
 

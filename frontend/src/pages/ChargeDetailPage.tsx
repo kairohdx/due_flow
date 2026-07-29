@@ -17,7 +17,7 @@ import {
   useUpdateCharge,
 } from "../hooks/useCharges";
 import { useCustomer } from "../hooks/useCustomers";
-import { chargeStatusMeta } from "../lib/charges";
+import { chargeDeadlineState, chargeStatusMeta } from "../lib/charges";
 import { formatCurrency, formatDate, formatDateTime } from "../lib/format";
 
 type Action = "paid" | "cancel" | "process" | null;
@@ -41,6 +41,11 @@ export function ChargeDetailPage() {
 
   const data = charge.data;
   const pending = data.status === "pending";
+  const deadline = chargeDeadlineState(
+    data.status,
+    data.due_date,
+    data.reminder_days_before,
+  );
   const actionError = markPaid.error ?? cancel.error ?? process.error;
   const busy = markPaid.isPending || cancel.isPending || process.isPending;
 
@@ -166,9 +171,20 @@ export function ChargeDetailPage() {
                 <strong><Link to={`/clientes/${data.customer_id}`}>{customer.data?.name ?? "Carregando cliente..."}</Link></strong>
               </div>
             </article>
-            <article className="surface-card detail-card">
+            <article className={`surface-card detail-card deadline-card deadline-${deadline}`}>
               <span className="detail-icon"><Icon name="calendar" /></span>
-              <div><small>Vencimento</small><strong>{formatDate(data.due_date)}</strong></div>
+              <div>
+                <small>
+                  {deadline === "overdue"
+                    ? "Vencida desde"
+                    : deadline === "today"
+                      ? "Vence hoje"
+                      : deadline === "upcoming"
+                        ? "Próximo vencimento"
+                        : "Vencimento"}
+                </small>
+                <strong>{formatDate(data.due_date)}</strong>
+              </div>
             </article>
             <article className="surface-card detail-card">
               <span className="detail-icon"><Icon name="bell" /></span>

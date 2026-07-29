@@ -10,7 +10,7 @@ import { PageHeader } from "../components/ui/PageHeader";
 import { Pagination } from "../components/ui/Pagination";
 import { StatusBadge } from "../components/ui/StatusBadge";
 import { useCharges } from "../hooks/useCharges";
-import { chargeStatusMeta } from "../lib/charges";
+import { chargeDeadlineState, chargeStatusMeta } from "../lib/charges";
 import { formatCurrency, formatDate } from "../lib/format";
 
 export function ChargesPage() {
@@ -48,17 +48,31 @@ export function ChargesPage() {
     {
       key: "description",
       label: "Cobrança",
-      render: (charge) => (
-        <Link className="cell-stack entity-primary" to={`/cobrancas/${charge.id}`}>
-          <strong>{charge.description}</strong>
-          <small>Vence em {formatDate(charge.due_date)}</small>
-        </Link>
-      ),
+      render: (charge) => {
+        const deadline = chargeDeadlineState(
+          charge.status,
+          charge.due_date,
+          charge.reminder_days_before,
+        );
+        return (
+          <Link className="cell-stack entity-primary" to={`/cobrancas/${charge.id}`}>
+            <strong>{charge.description}</strong>
+            <small className={`charge-deadline deadline-${deadline}`}>
+              {deadline === "overdue"
+                ? "Vencida em"
+                : deadline === "today"
+                  ? "Vence hoje ·"
+                  : "Vence em"}{" "}
+              {formatDate(charge.due_date)}
+            </small>
+          </Link>
+        );
+      },
     },
     { key: "amount", label: "Valor", render: (charge) => formatCurrency(charge.amount) },
     {
       key: "status",
-      label: "Situação",
+      label: "Estado",
       render: (charge) => (
         <StatusBadge tone={chargeStatusMeta[charge.status].tone}>
           {chargeStatusMeta[charge.status].label}
@@ -112,14 +126,14 @@ export function ChargesPage() {
             ) : null}
           </form>
           <select
-            aria-label="Filtrar situação"
+            aria-label="Filtrar estado"
             value={status ?? ""}
             onChange={(event) =>
               updateParams({ status: event.target.value || undefined, page: undefined })
             }
           >
-            <option value="">Todas as situações</option>
-            <option value="pending">Pendentes</option>
+            <option value="">Todos os estados</option>
+            <option value="pending">Em aberto</option>
             <option value="paid">Pagas</option>
             <option value="canceled">Canceladas</option>
           </select>

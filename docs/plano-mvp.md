@@ -685,12 +685,12 @@ Cada etapa termina com uma verificação executável.
 
 #### Etapa 7.7 — Execuções da automação
 
-- implementar listagem paginada das execuções por status e origem;
-- fazer polling a cada 2 segundos enquanto houver itens pendentes e desacelerar quando estável;
-- implementar detalhe técnico com linha do tempo, tentativas, decisões, trace, resultados e erros;
-- interromper polling do detalhe em estados terminais.
+- [x] implementar listagem paginada das execuções por status e origem;
+- [x] fazer polling a cada 2 segundos enquanto houver itens pendentes e desacelerar quando estável;
+- [x] implementar detalhe técnico com linha do tempo, tentativas, decisões, trace, resultados e erros;
+- [x] interromper polling do detalhe em estados terminais.
 
-**Pronto quando:** a área avançada permite acompanhar `queued → processing → completed/failed` e explicar visualmente cada execução sem misturar esses dados com a Visão geral.
+**Pronto quando:** a área avançada permite acompanhar `queued → processing → completed/failed` e explicar visualmente cada execução sem misturar esses dados com a Visão geral. Validado em 29/07/2026 com 17 testes de frontend, filtros e paginação na URL, polling adaptativo de 2/15 segundos, interrupção do polling em estado terminal, detalhe completo do PolicyFlow, lint e build de produção.
 
 #### Etapa 7.8 — Histórico de notificações
 
@@ -784,4 +784,4 @@ Funcionalidades tentadoras que devem continuar fora: editor de templates, retry 
 
 ## Próxima ação recomendada
 
-Iniciar a **Etapa 7.7 — Execuções da automação**: implementar acompanhamento paginado, polling adaptativo e detalhe técnico auditável.
+Iniciar a **Etapa 7.8 — Histórico de notificações**: implementar listagem paginada, filtros, detalhe de cada tentativa e vínculos com cliente, cobrança e execução.
