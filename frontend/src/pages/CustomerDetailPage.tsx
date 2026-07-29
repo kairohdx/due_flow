@@ -22,12 +22,13 @@ import {
   formatDateTime,
   formatPhone,
 } from "../lib/format";
+import { chargeDeadlineState } from "../lib/charges";
 
 const chargeStatus: Record<
   ChargeStatus,
   { label: string; tone: BadgeTone }
 > = {
-  pending: { label: "Pendente", tone: "warning" },
+  pending: { label: "Em aberto", tone: "warning" },
   paid: { label: "Paga", tone: "success" },
   canceled: { label: "Cancelada", tone: "neutral" },
 };
@@ -36,12 +37,26 @@ const chargeColumns: TableColumn<Charge>[] = [
   {
     key: "description",
     label: "Cobrança",
-    render: (charge) => (
-      <span className="cell-stack">
-        <strong>{charge.description}</strong>
-        <small>Vence em {formatDate(charge.due_date)}</small>
-      </span>
-    ),
+    render: (charge) => {
+      const deadline = chargeDeadlineState(
+        charge.status,
+        charge.due_date,
+        charge.reminder_days_before,
+      );
+      return (
+        <span className="cell-stack">
+          <strong>{charge.description}</strong>
+          <small className={`charge-deadline deadline-${deadline}`}>
+            {deadline === "overdue"
+              ? "Vencida em"
+              : deadline === "today"
+                ? "Vence hoje ·"
+                : "Vence em"}{" "}
+            {formatDate(charge.due_date)}
+          </small>
+        </span>
+      );
+    },
   },
   {
     key: "amount",
@@ -50,7 +65,7 @@ const chargeColumns: TableColumn<Charge>[] = [
   },
   {
     key: "status",
-    label: "Situação",
+    label: "Estado",
     render: (charge) => (
       <StatusBadge tone={chargeStatus[charge.status].tone}>
         {chargeStatus[charge.status].label}

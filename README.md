@@ -79,6 +79,8 @@ A área de clientes oferece busca, filtro por situação e paginação persistid
 
 A área de cobranças oferece busca, filtros por situação e vencimento, criação, detalhe e edição. Cobranças pendentes podem ser marcadas como pagas, canceladas ou verificadas imediatamente pelas regras, sempre com confirmação e feedback na interface.
 
+A área **Execuções da automação** concentra o diagnóstico técnico: listagem paginada por estado, origem e tipo, polling rápido enquanto houver trabalho ativo e detalhe com linha do tempo, tentativas, resultados, decisões, traces do PolicyFlow, erros e payload original. Quando a fila fica estável, a atualização desacelera; no detalhe, ela é encerrada ao atingir um estado terminal.
+
 Para validar o frontend:
 
 ```powershell

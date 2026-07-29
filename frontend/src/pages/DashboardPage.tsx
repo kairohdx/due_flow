@@ -278,7 +278,7 @@ export function DashboardPage() {
           </div>
           <section className="metrics-grid">
             <MetricCard label="Clientes cadastrados" value={summary.customers_total} hint="Base total" icon="users" />
-            <MetricCard label="Cobranças pendentes" value={summary.charges_pending} hint="Aguardando resolução" icon="credit-card" tone="amber" />
+            <MetricCard label="Cobranças em aberto" value={summary.charges_pending} hint="Aguardando resolução" icon="credit-card" tone="amber" />
             <MetricCard label="Cobranças vencidas" value={summary.charges_overdue} hint="Precisam de atenção" icon="bell" tone="red" />
             <MetricCard label="Vencem hoje" value={summary.charges_due_today} hint="Prazo de hoje" icon="calendar" tone="amber" />
             <MetricCard label="Vencem em até 7 dias" value={summary.charges_due_next_7_days} hint="Próximos vencimentos" icon="clock" tone="blue" />

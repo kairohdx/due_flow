@@ -23,7 +23,7 @@ export function ChargeCreatePage() {
       <section className="surface-card form-card">
         <div className="form-card-heading">
           <span className="form-heading-icon"><Icon name="credit-card" /></span>
-          <div><h2>Informações da cobrança</h2><p>Você poderá editar enquanto ela estiver pendente.</p></div>
+          <div><h2>Informações da cobrança</h2><p>Você poderá editar enquanto ela estiver em aberto.</p></div>
         </div>
         <ChargeForm
           initialValue={{

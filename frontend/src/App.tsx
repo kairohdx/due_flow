@@ -10,6 +10,8 @@ import { CustomersPage } from "./pages/CustomersPage";
 import { ChargeCreatePage } from "./pages/ChargeCreatePage";
 import { ChargeDetailPage } from "./pages/ChargeDetailPage";
 import { ChargesPage } from "./pages/ChargesPage";
+import { ExecutionDetailPage } from "./pages/ExecutionDetailPage";
+import { ExecutionsPage } from "./pages/ExecutionsPage";
 import { LoginPage } from "./pages/LoginPage";
 
 export default function App() {
@@ -31,7 +33,8 @@ export default function App() {
         <Route path="cobrancas" element={<ChargesPage />} />
         <Route path="cobrancas/nova" element={<ChargeCreatePage />} />
         <Route path="cobrancas/:chargeId" element={<ChargeDetailPage />} />
-        <Route path="fila" element={<FoundationPage type="jobs" />} />
+        <Route path="fila" element={<ExecutionsPage />} />
+        <Route path="fila/:executionId" element={<ExecutionDetailPage />} />
         <Route
           path="notificacoes"
           element={<FoundationPage type="notifications" />}
