@@ -9,6 +9,7 @@ from dueflow.domain.messaging import (
     NotificationProvider,
     ProviderSubmissionError,
     ProviderResult,
+    TemplateMessage,
 )
 
 
@@ -96,6 +97,48 @@ class MetaWhatsAppProvider:
             "type": "text",
             "text": {"preview_url": False, "body": body},
         }
+        return self._submit(
+            request_payload,
+            correlation_id=correlation_id,
+        )
+
+    def send_template(
+        self,
+        to: str,
+        template: TemplateMessage,
+        *,
+        correlation_id: str,
+    ) -> ProviderResult:
+        request_payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to.removeprefix("+"),
+            "type": "template",
+            "template": {
+                "name": template.name,
+                "language": {"code": template.language},
+                "components": [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": value}
+                            for value in template.parameters
+                        ],
+                    }
+                ],
+            },
+        }
+        return self._submit(
+            request_payload,
+            correlation_id=correlation_id,
+        )
+
+    def _submit(
+        self,
+        request_payload: dict[str, Any],
+        *,
+        correlation_id: str,
+    ) -> ProviderResult:
         url = (
             f"{self._base_url}/{self._graph_api_version}/"
             f"{self._phone_number_id}/messages"

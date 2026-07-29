@@ -56,6 +56,7 @@ function configureApi() {
     charges_due_next_7_days: 4,
     charges_evaluated_last_24h: 27,
     submissions_succeeded_last_24h: 12,
+    submissions_simulated_last_24h: 5,
     submissions_failed_last_24h: 1,
     submissions_unknown_last_24h: 0,
     deliveries_confirmed_last_24h: 10,

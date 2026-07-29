@@ -42,6 +42,11 @@ sanitizados. Códigos desconhecidos recebem uma mensagem genérica em português
 O catálogo não executa retentativas e pode evoluir sem alterar o protocolo do
 webhook.
 
+No modo fake, o worker gera eventos assíncronos determinísticos depois do
+aceite simulado. Eles percorrem os mesmos estados de entrega e usam o mesmo
+modelo de auditoria, mas são identificados como simulados e não passam pelo
+endpoint público nem exigem uma assinatura Meta fictícia.
+
 Validação, parsing, idempotência e transições permanecem explícitos. O
 `policy_flow` será usado somente na decisão de recuperação posterior, com
 `FirstMatch`, quando houver ganho em prioridade, motivo e trace.

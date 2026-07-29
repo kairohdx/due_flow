@@ -73,7 +73,7 @@ const completedExecution: Job = {
         },
         notification: {
           attempt_id: "33333333-3333-3333-3333-333333333333",
-          status: "simulated",
+          submission_status: "simulated",
           provider_message_id: "fake-1",
           idempotency_key: "dedup-key",
           deduplicated: false,

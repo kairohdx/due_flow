@@ -30,6 +30,10 @@ vi.mock("../api/customers", () => ({
 
 vi.mock("../api/notifications", () => ({
   getChargeNotifications: vi.fn(),
+  getNotificationRecovery: vi.fn(),
+  getNotificationAttempts: vi.fn(),
+  retryNotification: vi.fn(),
+  retryNotificationWithTemplate: vi.fn(),
 }));
 
 const customer: Customer = {
@@ -93,6 +97,27 @@ function wrapper(initialEntry: string, routes: React.ReactNode) {
 }
 
 beforeEach(() => {
+  vi.mocked(notificationsApi.getNotificationRecovery).mockResolvedValue({
+    attempt_id: metaAttempt.id,
+    eligible: false,
+    action: "block",
+    reason: "delivery_is_pending",
+    policy_name: "BlockActiveOrSuccessfulDeliveryPolicy",
+    trace: {
+      trace_id: "recovery-trace",
+      execution_id: "recovery-execution",
+      pipeline: "dueflow.notification_recovery",
+      strategy: "first_match",
+      status: "completed",
+      duration_ms: 1,
+      selected_policy: "BlockActiveOrSuccessfulDeliveryPolicy",
+      evaluated: [],
+      not_evaluated: [],
+    },
+  });
+  vi.mocked(notificationsApi.getNotificationAttempts).mockResolvedValue([
+    metaAttempt,
+  ]);
   vi.mocked(chargesApi.getCharges).mockResolvedValue({
     items: [charge],
     page: 1,

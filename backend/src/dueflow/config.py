@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     message_provider: Literal["fake", "meta"] = "fake"
+    fake_delivery_outcome: Literal["delivered", "read", "failed"] = "delivered"
+    fake_delivery_delay_seconds: float = Field(default=2, ge=0, le=60)
+    fake_delivery_error_code: int = Field(default=131047, ge=1)
+    meta_template_mode: Literal["retry_only", "always"] = "retry_only"
+    meta_template_name: str = "dueflow_aviso_cobranca_v1"
+    meta_template_language: str = "pt_BR"
     meta_whatsapp_token: SecretStr | None = None
     meta_whatsapp_phone_number_id: str = ""
     meta_graph_api_version: str = ""
@@ -112,6 +118,10 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "META_GRAPH_API_BASE_URL deve ser uma URL HTTP(S)"
                 )
+        if not self.meta_template_name.strip():
+            raise ValueError("META_TEMPLATE_NAME não pode ser vazio")
+        if not self.meta_template_language.strip():
+            raise ValueError("META_TEMPLATE_LANGUAGE não pode ser vazio")
         return self
 
 

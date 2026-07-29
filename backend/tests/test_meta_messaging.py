@@ -4,7 +4,10 @@ import httpx
 import pytest
 
 from dueflow.config import Settings
-from dueflow.domain.messaging import NotificationSubmissionStatus
+from dueflow.domain.messaging import (
+    NotificationSubmissionStatus,
+    TemplateMessage,
+)
 from dueflow.infrastructure.messaging.fake import FakeWhatsAppProvider
 from dueflow.infrastructure.messaging.meta import (
     MetaWhatsAppError,
@@ -74,6 +77,85 @@ def test_meta_provider_sends_expected_request_and_returns_safe_result() -> None:
     assert result.response_payload["http_status"] == 200
     assert result.response_payload["correlation_id"] == "attempt-123"
     assert TEST_TOKEN not in repr(result)
+
+
+def test_meta_provider_sends_expected_template_payload() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert json.loads(request.content) == {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": "5511999990000",
+            "type": "template",
+            "template": {
+                "name": "dueflow_aviso_cobranca_v1",
+                "language": {"code": "pt_BR"},
+                "components": [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "João da Silva"},
+                            {"type": "text", "text": "Pedido 1048"},
+                            {"type": "text", "text": "R$ 149,90"},
+                            {"type": "text", "text": "31/07/2026"},
+                        ],
+                    }
+                ],
+            },
+        }
+        return httpx.Response(
+            200,
+            json={"messages": [{"id": "wamid.template-test"}]},
+        )
+
+    result = provider_with(handler).send_template(
+        "+5511999990000",
+        TemplateMessage(
+            name="dueflow_aviso_cobranca_v1",
+            language="pt_BR",
+            parameters=(
+                "João da Silva",
+                "Pedido 1048",
+                "R$ 149,90",
+                "31/07/2026",
+            ),
+            preview="Prévia",
+        ),
+        correlation_id="attempt-template",
+    )
+
+    assert result.provider_message_id == "wamid.template-test"
+    assert result.request_payload["type"] == "template"
+    assert result.request_payload["to"] == "55*******0000"
+
+
+def test_meta_provider_reports_template_rejection_safely() -> None:
+    provider = provider_with(
+        lambda request: httpx.Response(
+            400,
+            json={
+                "error": {
+                    "message": "Template não aprovado",
+                    "type": "OAuthException",
+                    "code": 132001,
+                }
+            },
+        )
+    )
+
+    with pytest.raises(MetaWhatsAppError) as captured:
+        provider.send_template(
+            "+5511999990000",
+            TemplateMessage(
+                name="dueflow_aviso_cobranca_v1",
+                language="pt_BR",
+                parameters=("João", "Pedido", "R$ 10,00", "31/07/2026"),
+                preview="Prévia",
+            ),
+            correlation_id="attempt-template",
+        )
+
+    assert captured.value.code == 132001
+    assert "Template não aprovado" in str(captured.value)
 
 
 def test_meta_provider_translates_and_sanitizes_http_error() -> None:

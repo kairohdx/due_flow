@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -40,6 +40,10 @@ class NotificationAttemptRepository:
         decision_reason: str,
         trace: dict[str, Any],
         processed_at: datetime,
+        root_attempt_id: UUID | None = None,
+        retry_of_attempt_id: UUID | None = None,
+        retry_requested_by_user_id: UUID | None = None,
+        attempt_number: int = 1,
     ) -> AttemptReservation:
         existing = self.get_by_idempotency_key(idempotency_key)
         if existing is not None:
@@ -59,6 +63,10 @@ class NotificationAttemptRepository:
             decision_reason=decision_reason,
             trace=dict(trace),
             processed_at=processed_at,
+            root_attempt_id=root_attempt_id,
+            retry_of_attempt_id=retry_of_attempt_id,
+            retry_requested_by_user_id=retry_requested_by_user_id,
+            attempt_number=attempt_number,
         )
         self.session.add(attempt)
         try:
@@ -87,6 +95,11 @@ class NotificationAttemptRepository:
         if (
             submission_status == NotificationSubmissionStatus.SUCCEEDED
             and attempt.provider == NotificationProvider.META
+        ):
+            attempt.delivery_status = NotificationDeliveryStatus.PENDING
+        elif (
+            submission_status == NotificationSubmissionStatus.SIMULATED
+            and attempt.provider == NotificationProvider.FAKE
         ):
             attempt.delivery_status = NotificationDeliveryStatus.PENDING
         attempt.submission_error_code = None
@@ -136,6 +149,48 @@ class NotificationAttemptRepository:
     def get(self, attempt_id: UUID) -> NotificationAttempt | None:
         return self.session.get(NotificationAttempt, attempt_id)
 
+    def family(self, attempt: NotificationAttempt) -> list[NotificationAttempt]:
+        root_id = attempt.root_attempt_id or attempt.id
+        statement = (
+            select(NotificationAttempt)
+            .where(
+                or_(
+                    NotificationAttempt.id == root_id,
+                    NotificationAttempt.root_attempt_id == root_id,
+                )
+            )
+            .order_by(
+                NotificationAttempt.attempt_number,
+                NotificationAttempt.processed_at,
+            )
+        )
+        return list(self.session.scalars(statement))
+
+    def has_newer_attempt(self, attempt: NotificationAttempt) -> bool:
+        root_id = attempt.root_attempt_id or attempt.id
+        return bool(
+            self.session.scalar(
+                select(func.count())
+                .select_from(NotificationAttempt)
+                .where(
+                    NotificationAttempt.root_attempt_id == root_id,
+                    NotificationAttempt.attempt_number
+                    > attempt.attempt_number,
+                )
+            )
+        )
+
+    def next_attempt_number(self, root_id: UUID) -> int:
+        latest = self.session.scalar(
+            select(func.max(NotificationAttempt.attempt_number)).where(
+                or_(
+                    NotificationAttempt.id == root_id,
+                    NotificationAttempt.root_attempt_id == root_id,
+                )
+            )
+        )
+        return int(latest or 1) + 1
+
     def get_by_provider_message_id(
         self,
         provider_message_id: str,
@@ -175,6 +230,39 @@ class NotificationAttemptRepository:
         self.session.commit()
         self.session.refresh(attempt)
         return attempt
+
+    def list_fake_deliveries_ready(
+        self,
+        *,
+        ready_before: datetime,
+    ) -> list[NotificationAttempt]:
+        statement = (
+            select(NotificationAttempt)
+            .where(
+                NotificationAttempt.provider == NotificationProvider.FAKE,
+                NotificationAttempt.submission_status
+                == NotificationSubmissionStatus.SIMULATED,
+                NotificationAttempt.delivery_status.in_(
+                    (
+                        NotificationDeliveryStatus.PENDING,
+                        NotificationDeliveryStatus.SENT,
+                        NotificationDeliveryStatus.DELIVERED,
+                    )
+                ),
+                or_(
+                    NotificationAttempt.delivery_updated_at <= ready_before,
+                    (
+                        NotificationAttempt.delivery_updated_at.is_(None)
+                        & (
+                            NotificationAttempt.processed_at
+                            <= ready_before
+                        )
+                    ),
+                ),
+            )
+            .order_by(NotificationAttempt.processed_at, NotificationAttempt.id)
+        )
+        return list(self.session.scalars(statement))
 
     def list(
         self,

@@ -4,6 +4,7 @@ from typing import Any
 from uuid import UUID
 
 from dueflow.application.message_templates import MessageRenderer
+from dueflow.application.message_delivery import TemplateConfiguration
 from dueflow.application.whatsapp import WhatsAppProvider
 from dueflow.domain.messaging import (
     NotificationSubmissionStatus,
@@ -42,10 +43,14 @@ class NotificationService:
         repository: NotificationAttemptRepository,
         provider: WhatsAppProvider,
         renderer: MessageRenderer | None = None,
+        template_configuration: TemplateConfiguration | None = None,
     ) -> None:
         self.repository = repository
         self.provider = provider
         self.renderer = renderer or MessageRenderer()
+        self.template_configuration = (
+            template_configuration or TemplateConfiguration(name="")
+        )
 
     def execute(
         self,
@@ -63,13 +68,30 @@ class NotificationService:
         ):
             return None
 
-        message = self.renderer.render(
+        text_message = self.renderer.render(
             decision.notification_type,
             customer_name=customer.name,
             charge_description=charge.description,
             amount=charge.amount,
             due_date=charge.due_date,
         )
+        template = None
+        if self.template_configuration.use_by_default:
+            template = self.template_configuration.render(
+                customer=customer,
+                charge=charge,
+            )
+        message = template.preview if template is not None else text_message
+        attempt_trace = {
+            **trace,
+            "message_format": "template" if template is not None else "text",
+        }
+        if template is not None:
+            attempt_trace["template"] = {
+                "name": template.name,
+                "language": template.language,
+                "parameters": list(template.parameters),
+            }
         idempotency_key = (
             f"{charge.id}:{charge.due_date.isoformat()}:"
             f"{decision.notification_type.value}"
@@ -85,7 +107,7 @@ class NotificationService:
             idempotency_key=idempotency_key,
             policy_name=decision.policy_name,
             decision_reason=decision.reason,
-            trace=trace,
+            trace=attempt_trace,
             processed_at=now,
         )
         attempt = reservation.attempt
@@ -100,11 +122,18 @@ class NotificationService:
             )
 
         try:
-            result = self.provider.send_text(
-                customer.phone,
-                message,
-                correlation_id=str(attempt.id),
-            )
+            if template is not None:
+                result = self.provider.send_template(
+                    customer.phone,
+                    template,
+                    correlation_id=str(attempt.id),
+                )
+            else:
+                result = self.provider.send_text(
+                    customer.phone,
+                    message,
+                    correlation_id=str(attempt.id),
+                )
         except Exception as exc:
             safe_error = f"{type(exc).__name__}: {exc}"
             provider_error = (

@@ -19,4 +19,5 @@ export const executionOriginLabel: Record<JobOrigin, string> = {
 export const executionTypeLabel: Record<JobType, string> = {
   process_charge: "Cobrança individual",
   process_due_charges: "Verificação geral",
+  retry_notification: "Retentativa de mensagem",
 };

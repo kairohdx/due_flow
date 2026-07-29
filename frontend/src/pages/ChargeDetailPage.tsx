@@ -17,7 +17,10 @@ import {
   useUpdateCharge,
 } from "../hooks/useCharges";
 import { useCustomer } from "../hooks/useCustomers";
-import { useChargeNotifications } from "../hooks/useNotifications";
+import {
+  useChargeNotifications,
+  useNotificationRetry,
+} from "../hooks/useNotifications";
 import { chargeDeadlineState, chargeStatusMeta } from "../lib/charges";
 import { formatCurrency, formatDate, formatDateTime } from "../lib/format";
 import {
@@ -27,6 +30,33 @@ import {
 } from "../lib/notifications";
 
 type Action = "paid" | "cancel" | "process" | null;
+
+function ChargeRetryAction({ attemptId }: { attemptId: string }) {
+  const retryFlow = useNotificationRetry(attemptId);
+  if (
+    !retryFlow.recovery.data?.eligible &&
+    !retryFlow.recovery.data?.template_eligible
+  ) return null;
+  const withTemplate = retryFlow.recovery.data.template_eligible;
+  return (
+    <Button
+      variant="secondary"
+      icon={<Icon name="refresh" />}
+      loading={
+        retryFlow.retry.isPending ||
+        retryFlow.retryTemplate.isPending ||
+        Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)
+      }
+      onClick={() =>
+        withTemplate
+          ? retryFlow.retryTemplate.mutate()
+          : retryFlow.retry.mutate()
+      }
+    >
+      {withTemplate ? "Reenviar com template" : "Tentar novamente"}
+    </Button>
+  );
+}
 
 export function ChargeDetailPage() {
   const { chargeId = "" } = useParams();
@@ -232,32 +262,34 @@ export function ChargeDetailPage() {
                 {notifications.data.items.map((attempt) => {
                   const attemptStatus = notificationResultMeta(attempt);
                   return (
-                    <Link
-                      className="charge-notification-row"
-                      key={attempt.id}
-                      to={`/notificacoes/${attempt.id}`}
-                    >
-                      <span
-                        className={`provider-mark provider-${attempt.provider}`}
+                    <div className="charge-notification-item" key={attempt.id}>
+                      <Link
+                        className="charge-notification-row"
+                        to={`/notificacoes/${attempt.id}`}
                       >
-                        <Icon
-                          name={attempt.provider === "meta" ? "message" : "sparkles"}
-                        />
-                      </span>
-                      <div>
-                        <strong>
-                          {notificationTypeLabel[attempt.notification_type]}
-                        </strong>
-                        <small>
-                          {notificationProviderLabel[attempt.provider]} ·{" "}
-                          {formatDateTime(attempt.processed_at)}
-                        </small>
-                      </div>
-                      <StatusBadge tone={attemptStatus.tone}>
-                        {attemptStatus.label}
-                      </StatusBadge>
-                      <Icon name="arrow-right" />
-                    </Link>
+                        <span
+                          className={`provider-mark provider-${attempt.provider}`}
+                        >
+                          <Icon
+                            name={attempt.provider === "meta" ? "message" : "sparkles"}
+                          />
+                        </span>
+                        <div>
+                          <strong>
+                            {notificationTypeLabel[attempt.notification_type]}
+                          </strong>
+                          <small>
+                            {notificationProviderLabel[attempt.provider]} ·{" "}
+                            {formatDateTime(attempt.processed_at)}
+                          </small>
+                        </div>
+                        <StatusBadge tone={attemptStatus.tone}>
+                          {attemptStatus.label}
+                        </StatusBadge>
+                        <Icon name="arrow-right" />
+                      </Link>
+                      <ChargeRetryAction attemptId={attempt.id} />
+                    </div>
                   );
                 })}
               </div>

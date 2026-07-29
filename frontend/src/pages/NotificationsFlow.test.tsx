@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import * as chargesApi from "../api/charges";
 import * as customersApi from "../api/customers";
 import * as notificationsApi from "../api/notifications";
+import * as dashboardApi from "../api/dashboard";
 import type { Charge, Customer, NotificationAttempt } from "../api/types";
 import { NotificationDetailPage } from "./NotificationDetailPage";
 import { NotificationsPage } from "./NotificationsPage";
@@ -12,6 +13,14 @@ import { NotificationsPage } from "./NotificationsPage";
 vi.mock("../api/notifications", () => ({
   getNotifications: vi.fn(),
   getNotification: vi.fn(),
+  getNotificationRecovery: vi.fn(),
+  getNotificationAttempts: vi.fn(),
+  retryNotification: vi.fn(),
+  retryNotificationWithTemplate: vi.fn(),
+}));
+vi.mock("../api/dashboard", () => ({
+  getDashboardSummary: vi.fn(),
+  getJob: vi.fn(),
 }));
 vi.mock("../api/charges", () => ({
   getCharge: vi.fn(),
@@ -73,7 +82,7 @@ const attempt: NotificationAttempt = {
     request: { to: "5511999990000", type: "text" },
     response: { status: "simulated" },
   },
-  delivery_status: "not_started",
+  delivery_status: "pending",
   delivery_error_info: null,
   processed_at: "2026-07-29T12:00:00Z",
 };
@@ -100,6 +109,17 @@ beforeEach(() => {
     pages: 2,
   });
   vi.mocked(notificationsApi.getNotification).mockResolvedValue(attempt);
+  vi.mocked(notificationsApi.getNotificationRecovery).mockResolvedValue({
+    attempt_id: attempt.id,
+    eligible: false,
+    action: "block",
+    reason: "delivery_is_pending",
+    policy_name: "BlockActiveOrSuccessfulDeliveryPolicy",
+    trace: attempt.trace!,
+  });
+  vi.mocked(notificationsApi.getNotificationAttempts).mockResolvedValue([
+    attempt,
+  ]);
   vi.mocked(chargesApi.getCharge).mockResolvedValue(charge);
   vi.mocked(customersApi.getCustomer).mockResolvedValue(customer);
 });
@@ -135,6 +155,7 @@ it("mostra conteúdo, rastreabilidade e vínculos no detalhe", async () => {
   );
 
   expect(await screen.findByText(/Processamento no simulador/)).toBeInTheDocument();
+  expect(screen.getByText(/Entrega simulada.*Aguardando entrega/)).toBeInTheDocument();
   expect(screen.getByText("Olá! Sua cobrança vence hoje.")).toBeInTheDocument();
   expect(await screen.findByText("Mensalidade de julho")).toBeInTheDocument();
   expect(await screen.findByText("Padaria Pão Dourado")).toBeInTheDocument();
@@ -144,6 +165,152 @@ it("mostra conteúdo, rastreabilidade e vínculos no detalhe", async () => {
   expect(screen.getByText("Simulado")).toBeInTheDocument();
   await user.click(screen.getByText("Dados técnicos sanitizados"));
   expect(screen.getByText(/simulated/)).toBeInTheDocument();
+});
+
+it("enfileira retentativa elegível e preserva o histórico", async () => {
+  const user = userEvent.setup();
+  const retried = {
+    ...attempt,
+    id: "notification-2",
+    attempt_number: 2,
+    root_attempt_id: attempt.id,
+    retry_of_attempt_id: attempt.id,
+    delivery_status: "pending" as const,
+  };
+  vi.mocked(notificationsApi.getNotificationRecovery).mockResolvedValue({
+    attempt_id: attempt.id,
+    eligible: true,
+    action: "retry",
+    reason: "confirmed_retryable_failure",
+    policy_name: "AllowRetryPolicy",
+    trace: attempt.trace!,
+  });
+  vi.mocked(notificationsApi.retryNotification).mockResolvedValue({
+    job_id: "retry-job-1",
+    status: "queued",
+    created: true,
+  });
+  vi.mocked(dashboardApi.getJob).mockResolvedValue({
+    id: "retry-job-1",
+    type: "retry_notification",
+    status: "completed",
+    origin: "manual",
+    charge_id: null,
+    terminal: true,
+    duration_ms: 10,
+    payload: {},
+    result: {
+      evaluated: 0,
+      eligible: 1,
+      skipped: 0,
+      simulated: 1,
+      deduplicated: 0,
+      notification_failed: 0,
+      retried: true,
+      cancelled: false,
+      source_attempt_id: attempt.id,
+      attempt_id: retried.id,
+    },
+    scheduled_for: "2026-07-29T12:01:00Z",
+    attempts: 1,
+    max_attempts: 3,
+    started_at: "2026-07-29T12:01:00Z",
+    finished_at: "2026-07-29T12:01:00Z",
+    error: null,
+    retain_deduplication_key: false,
+    created_at: "2026-07-29T12:01:00Z",
+    updated_at: "2026-07-29T12:01:00Z",
+  });
+  vi.mocked(notificationsApi.getNotificationAttempts)
+    .mockResolvedValueOnce([attempt])
+    .mockResolvedValue([attempt, retried]);
+
+  wrapper(
+    "/notificacoes/notification-1",
+    <Route path="/notificacoes/:notificationId" element={<NotificationDetailPage />} />,
+  );
+
+  await user.click(
+    await screen.findByRole("button", { name: "Tentar novamente" }),
+  );
+
+  await waitFor(() =>
+    expect(notificationsApi.retryNotification).toHaveBeenCalledWith(
+      attempt.id,
+    ),
+  );
+  expect(
+    await screen.findByText("Nova tentativa criada"),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText("Tentativa 2"),
+  ).toBeInTheDocument();
+});
+
+it("oferece reenvio com template para falha fora da janela", async () => {
+  const user = userEvent.setup();
+  vi.mocked(notificationsApi.getNotificationRecovery).mockResolvedValue({
+    attempt_id: attempt.id,
+    eligible: false,
+    template_eligible: true,
+    action: "template",
+    reason: "error_requires_template",
+    policy_name: "RequireTemplatePolicy",
+    trace: attempt.trace!,
+  });
+  vi.mocked(
+    notificationsApi.retryNotificationWithTemplate,
+  ).mockResolvedValue({
+    job_id: "template-job-1",
+    status: "queued",
+    created: true,
+  });
+  vi.mocked(dashboardApi.getJob).mockResolvedValue({
+    id: "template-job-1",
+    type: "retry_notification",
+    status: "completed",
+    origin: "manual",
+    charge_id: charge.id,
+    terminal: true,
+    duration_ms: 10,
+    payload: { send_mode: "template" },
+    result: {
+      evaluated: 0,
+      eligible: 1,
+      skipped: 0,
+      simulated: 1,
+      deduplicated: 0,
+      notification_failed: 0,
+      retried: true,
+      cancelled: false,
+      source_attempt_id: attempt.id,
+    },
+    scheduled_for: "2026-07-29T12:01:00Z",
+    attempts: 1,
+    max_attempts: 3,
+    started_at: "2026-07-29T12:01:00Z",
+    finished_at: "2026-07-29T12:01:00Z",
+    error: null,
+    retain_deduplication_key: false,
+    created_at: "2026-07-29T12:01:00Z",
+    updated_at: "2026-07-29T12:01:00Z",
+  });
+
+  wrapper(
+    "/notificacoes/notification-1",
+    <Route path="/notificacoes/:notificationId" element={<NotificationDetailPage />} />,
+  );
+
+  await user.click(
+    await screen.findByRole("button", {
+      name: "Reenviar com template",
+    }),
+  );
+  await waitFor(() =>
+    expect(
+      notificationsApi.retryNotificationWithTemplate,
+    ).toHaveBeenCalledWith(attempt.id),
+  );
 });
 
 it("explica o aceite e o retorno sanitizado da Meta", async () => {
@@ -184,6 +351,7 @@ it("diferencia visualmente uma falha", async () => {
   vi.mocked(notificationsApi.getNotification).mockResolvedValue({
     ...attempt,
     submission_status: "failed",
+    delivery_status: "not_started",
     submission_error_details: "Falha controlada no provider",
     submission_error_info: {
       code: null,

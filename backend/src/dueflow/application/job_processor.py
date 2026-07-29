@@ -6,7 +6,9 @@ from zoneinfo import ZoneInfo
 
 from dueflow.application.errors import ResourceNotFoundError
 from dueflow.application.notification_evaluation import EvaluateChargeNotification
+from dueflow.application.message_delivery import TemplateConfiguration
 from dueflow.application.notifications import NotificationService
+from dueflow.application.notification_retries import NotificationRetryService
 from dueflow.application.whatsapp import WhatsAppProvider
 from dueflow.domain.jobs import JobRecord, JobType
 from dueflow.domain.notifications import (
@@ -31,18 +33,29 @@ class ProcessingJobHandler:
         *,
         timezone: str,
         today_provider: Callable[[ZoneInfo], date] | None = None,
+        template_configuration: TemplateConfiguration | None = None,
     ) -> None:
         self.charge_repository = charge_repository
         self.customer_repository = customer_repository
         self.notification_service = NotificationService(
             notification_repository,
             provider,
+            template_configuration=template_configuration,
+        )
+        self.retry_service = NotificationRetryService(
+            notification_repository,
+            charge_repository,
+            customer_repository,
+            provider=provider,
+            template_configuration=template_configuration,
         )
         self.timezone = ZoneInfo(timezone)
         self.today_provider = today_provider or self._system_today
         self.evaluator = EvaluateChargeNotification()
 
     def process(self, job: JobRecord) -> dict[str, Any]:
+        if job.type is JobType.RETRY_NOTIFICATION:
+            return self.retry_service.process(job)
         reference_date = self._reference_date(job.payload)
         if job.type is JobType.PROCESS_CHARGE:
             charge_id = UUID(str(job.payload["charge_id"]))

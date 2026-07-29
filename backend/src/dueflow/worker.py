@@ -5,7 +5,9 @@ from datetime import timedelta
 from uuid import uuid4
 
 from dueflow.application.scheduler import AutomationScheduler
+from dueflow.application.fake_delivery import FakeDeliverySimulator
 from dueflow.application.whatsapp import WhatsAppProvider
+from dueflow.application.message_delivery import TemplateConfiguration
 from dueflow.application.worker import Worker
 from dueflow.config import Settings, get_settings
 from dueflow.infrastructure.db.automation_repository import (
@@ -45,6 +47,14 @@ def build_worker() -> Worker:
         max_attempts=settings.worker_max_attempts,
     )
     worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex[:8]}"
+    fake_delivery_simulator = None
+    if settings.message_provider == "fake":
+        fake_delivery_simulator = FakeDeliverySimulator(
+            database,
+            outcome=settings.fake_delivery_outcome,
+            delay_seconds=settings.fake_delivery_delay_seconds,
+            error_code=settings.fake_delivery_error_code,
+        )
     return Worker(
         database=database,
         queue=queue,
@@ -54,6 +64,12 @@ def build_worker() -> Worker:
         poll_interval_seconds=settings.worker_poll_interval_seconds,
         lock_ttl=timedelta(seconds=settings.worker_lock_ttl_seconds),
         scheduler=scheduler,
+        fake_delivery_simulator=fake_delivery_simulator,
+        template_configuration=TemplateConfiguration(
+            mode=settings.meta_template_mode,
+            name=settings.meta_template_name,
+            language=settings.meta_template_language,
+        ),
     )
 
 

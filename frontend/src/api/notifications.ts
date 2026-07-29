@@ -2,9 +2,11 @@ import { apiFetch } from "./client";
 import type {
   NotificationAttempt,
   NotificationProvider,
+  RecoveryAssessment,
   NotificationSubmissionStatus,
   NotificationType,
   Page,
+  JobAccepted,
 } from "./types";
 
 export interface NotificationFilters {
@@ -50,4 +52,32 @@ export function getChargeNotifications(
   chargeId: string,
 ): Promise<Page<NotificationAttempt>> {
   return apiFetch(`/charges/${chargeId}/notifications?page=1&page_size=5`);
+}
+
+export function getNotificationRecovery(
+  notificationId: string,
+): Promise<RecoveryAssessment> {
+  return apiFetch(`/notifications/${notificationId}/recovery`);
+}
+
+export function retryNotification(
+  notificationId: string,
+): Promise<JobAccepted> {
+  return apiFetch(`/notifications/${notificationId}/retry`, {
+    method: "POST",
+  });
+}
+
+export function retryNotificationWithTemplate(
+  notificationId: string,
+): Promise<JobAccepted> {
+  return apiFetch(`/notifications/${notificationId}/retry-template`, {
+    method: "POST",
+  });
+}
+
+export function getNotificationAttempts(
+  notificationId: string,
+): Promise<NotificationAttempt[]> {
+  return apiFetch(`/notifications/${notificationId}/attempts`);
 }

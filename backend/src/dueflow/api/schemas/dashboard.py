@@ -15,6 +15,7 @@ class DashboardSummaryResponse(BaseModel):
     charges_due_next_7_days: int
     charges_evaluated_last_24h: int
     submissions_succeeded_last_24h: int
+    submissions_simulated_last_24h: int
     submissions_failed_last_24h: int
     submissions_unknown_last_24h: int
     deliveries_confirmed_last_24h: int

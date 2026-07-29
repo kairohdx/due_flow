@@ -71,7 +71,7 @@ export function NotificationsPage() {
     },
     {
       key: "submission",
-      label: "Envio para a Meta",
+      label: "Envio",
       render: (attempt) => (
         <StatusBadge tone={notificationSubmissionMeta(attempt).tone}>
           {notificationSubmissionMeta(attempt).label}
@@ -80,12 +80,10 @@ export function NotificationsPage() {
     },
     {
       key: "delivery",
-      label: "Entrega no WhatsApp",
+      label: "Entrega",
       render: (attempt) => (
         <StatusBadge tone={notificationDeliveryMeta(attempt).tone}>
-          {attempt.provider === "fake"
-            ? "Não se aplica"
-            : notificationDeliveryMeta(attempt).label}
+          {notificationDeliveryMeta(attempt).label}
         </StatusBadge>
       ),
     },
@@ -112,6 +110,7 @@ export function NotificationsPage() {
       {metrics.data ? (
         <section className="notification-metrics" aria-label="Indicadores das mensagens">
           <article><strong>{metrics.data.submissions_succeeded_last_24h}</strong><span>Aceitos pela Meta</span><small>Últimas 24 horas</small></article>
+          <article><strong>{metrics.data.submissions_simulated_last_24h}</strong><span>Envios simulados</span><small>Últimas 24 horas</small></article>
           <article><strong>{metrics.data.submissions_failed_last_24h}</strong><span>Falhas no envio</span><small>Últimas 24 horas</small></article>
           <article><strong>{metrics.data.deliveries_awaiting}</strong><span>Aguardando retorno</span><small>Estado atual</small></article>
           <article><strong>{metrics.data.deliveries_confirmed_last_24h}</strong><span>Entregues</span><small>Últimas 24 horas</small></article>

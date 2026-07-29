@@ -8,7 +8,10 @@ export interface Page<T> {
 
 export type JobStatus = "queued" | "processing" | "completed" | "failed";
 export type JobOrigin = "manual" | "automatic";
-export type JobType = "process_charge" | "process_due_charges";
+export type JobType =
+  | "process_charge"
+  | "process_due_charges"
+  | "retry_notification";
 
 export interface JobDecision {
   decision: "notify" | "skip";
@@ -43,7 +46,7 @@ export interface JobTrace {
 
 export interface JobNotification {
   attempt_id: string;
-  status: string;
+  submission_status: string;
   provider_message_id: string | null;
   idempotency_key: string;
   deduplicated: boolean;
@@ -66,6 +69,13 @@ export interface JobResult {
   deduplicated: number;
   notification_failed: number;
   evaluations?: JobEvaluation[];
+  retried?: boolean;
+  cancelled?: boolean;
+  source_attempt_id?: string;
+  attempt_id?: string;
+  attempt_number?: number;
+  submission_status?: string;
+  recovery?: Record<string, unknown>;
 }
 
 export interface Job {
@@ -166,10 +176,20 @@ export interface NotificationAttempt {
   id: string;
   charge_id: string;
   processing_job_id: string | null;
+  root_attempt_id?: string | null;
+  retry_of_attempt_id?: string | null;
+  retry_requested_by_user_id?: string | null;
+  attempt_number?: number;
   notification_type: NotificationType;
   provider: NotificationProvider;
   destination: string;
   message: string;
+  message_format?: "text" | "template";
+  template_info?: {
+    name: string;
+    language: string;
+    parameters: string[];
+  } | null;
   submission_status: NotificationSubmissionStatus;
   provider_message_id: string | null;
   submission_error_code: number | null;
@@ -190,4 +210,21 @@ export interface NotificationAttempt {
   delivery_error_info: MetaErrorInfo | null;
   delivery_response?: Record<string, unknown> | null;
   processed_at: string;
+}
+
+export type RecoveryAction =
+  | "retry"
+  | "template"
+  | "fix"
+  | "review"
+  | "block";
+
+export interface RecoveryAssessment {
+  attempt_id: string;
+  eligible: boolean;
+  action: RecoveryAction;
+  reason: string;
+  policy_name: string;
+  trace: JobTrace;
+  template_eligible?: boolean;
 }

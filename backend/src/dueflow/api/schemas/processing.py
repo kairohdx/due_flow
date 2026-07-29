@@ -79,6 +79,13 @@ class JobResultResponse(BaseModel):
     deduplicated: int
     notification_failed: int
     evaluations: list[JobEvaluationResponse]
+    retried: bool | None = None
+    cancelled: bool | None = None
+    source_attempt_id: UUID | None = None
+    attempt_id: UUID | None = None
+    attempt_number: int | None = None
+    submission_status: NotificationSubmissionStatus | None = None
+    recovery: dict[str, Any] | None = None
 
 
 class JobResponse(BaseModel):

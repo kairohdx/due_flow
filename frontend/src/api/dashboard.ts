@@ -11,6 +11,7 @@ export interface DashboardSummary {
   charges_due_next_7_days: number;
   charges_evaluated_last_24h: number;
   submissions_succeeded_last_24h: number;
+  submissions_simulated_last_24h: number;
   submissions_failed_last_24h: number;
   submissions_unknown_last_24h: number;
   deliveries_confirmed_last_24h: number;

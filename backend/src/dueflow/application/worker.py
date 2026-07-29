@@ -6,7 +6,9 @@ from datetime import UTC, datetime, timedelta
 from dueflow.application.job_queue import JobQueue
 from dueflow.application.job_processor import ProcessingJobHandler
 from dueflow.application.scheduler import AutomationScheduler
+from dueflow.application.fake_delivery import FakeDeliverySimulator
 from dueflow.application.whatsapp import WhatsAppProvider
+from dueflow.application.message_delivery import TemplateConfiguration
 from dueflow.infrastructure.db.database import Database
 from dueflow.infrastructure.db.notification_repository import (
     NotificationAttemptRepository,
@@ -29,6 +31,8 @@ class Worker:
         lock_ttl: timedelta,
         now_provider: Callable[[], datetime] | None = None,
         scheduler: AutomationScheduler | None = None,
+        fake_delivery_simulator: FakeDeliverySimulator | None = None,
+        template_configuration: TemplateConfiguration | None = None,
     ) -> None:
         self.database = database
         self.queue = queue
@@ -39,6 +43,8 @@ class Worker:
         self.lock_ttl = lock_ttl
         self.now_provider = now_provider or (lambda: datetime.now(UTC))
         self.scheduler = scheduler
+        self.fake_delivery_simulator = fake_delivery_simulator
+        self.template_configuration = template_configuration
 
     def run_once(self) -> bool:
         now = self.now_provider()
@@ -53,9 +59,18 @@ class Worker:
         if recovered:
             logger.warning("jobs com lock expirado recuperados: %s", recovered)
 
+        simulated = 0
+        if self.fake_delivery_simulator is not None:
+            simulated = self.fake_delivery_simulator.tick(now=now).advanced
+            if simulated:
+                logger.info(
+                    "eventos de entrega simulados avançados: %s",
+                    simulated,
+                )
+
         job = self.queue.claim(worker_id=self.worker_id, now=now)
         if job is None:
-            return False
+            return simulated > 0
 
         logger.info("job iniciado: id=%s type=%s", job.id, job.type.value)
         try:
@@ -66,6 +81,7 @@ class Worker:
                     NotificationAttemptRepository(session),
                     self.provider,
                     timezone=self.timezone,
+                    template_configuration=self.template_configuration,
                 )
                 result = handler.process(job)
             self.queue.complete(

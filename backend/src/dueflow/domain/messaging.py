@@ -25,6 +25,19 @@ class NotificationDeliveryStatus(str, Enum):
     FAILED = "failed"
 
 
+class MessageFormat(str, Enum):
+    TEXT = "text"
+    TEMPLATE = "template"
+
+
+@dataclass(frozen=True, slots=True)
+class TemplateMessage:
+    name: str
+    language: str
+    parameters: tuple[str, ...]
+    preview: str
+
+
 class ProviderSubmissionError(RuntimeError):
     def __init__(
         self,

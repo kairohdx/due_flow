@@ -47,7 +47,6 @@ export function notificationDeliveryMeta(
 export function notificationResultMeta(
   attempt: NotificationAttempt,
 ): { label: string; tone: BadgeTone } {
-  if (attempt.provider === "fake") return notificationSubmissionMeta(attempt);
   if (attempt.delivery_status !== "not_started") {
     return notificationDeliveryMeta(attempt);
   }

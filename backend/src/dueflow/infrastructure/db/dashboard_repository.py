@@ -101,8 +101,12 @@ class DashboardRepository:
             select(func.count())
             .select_from(NotificationAttempt)
             .where(
-                NotificationAttempt.submission_status
-                == NotificationSubmissionStatus.SUCCEEDED,
+                NotificationAttempt.submission_status.in_(
+                    (
+                        NotificationSubmissionStatus.SUCCEEDED,
+                        NotificationSubmissionStatus.SIMULATED,
+                    )
+                ),
                 NotificationAttempt.delivery_status.in_(
                     (
                         NotificationDeliveryStatus.PENDING,

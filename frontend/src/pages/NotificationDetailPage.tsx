@@ -4,9 +4,14 @@ import { Skeleton } from "../components/feedback/Skeleton";
 import { Icon } from "../components/ui/Icon";
 import { PageHeader } from "../components/ui/PageHeader";
 import { StatusBadge } from "../components/ui/StatusBadge";
+import { Button } from "../components/ui/Button";
 import { useCharge } from "../hooks/useCharges";
 import { useCustomer } from "../hooks/useCustomers";
-import { useNotification } from "../hooks/useNotifications";
+import {
+  useNotification,
+  useNotificationRetry,
+} from "../hooks/useNotifications";
+import { userFacingError } from "../api/errors";
 import {
   notificationProviderLabel,
   notificationDeliveryMeta,
@@ -25,6 +30,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 export function NotificationDetailPage() {
   const { notificationId = "" } = useParams();
   const notification = useNotification(notificationId);
+  const retryFlow = useNotificationRetry(notificationId);
   const charge = useCharge(notification.data?.charge_id ?? "");
   const customer = useCustomer(charge.data?.customer_id ?? "");
 
@@ -87,17 +93,24 @@ export function NotificationDetailPage() {
               </small>
             </div>
           </li>
-          {attempt.provider === "meta" ? (
+          {attempt.provider === "meta" || attempt.delivery_status !== "not_started" ? (
             <li className={deliveryFailed ? "timeline-error" : attempt.delivery_status === "delivered" || attempt.delivery_status === "read" ? "timeline-success" : "timeline-pending"}>
               <span><Icon name={deliveryFailed ? "x" : attempt.delivery_status === "pending" || attempt.delivery_status === "sent" ? "clock" : "check"} /></span>
               <div>
-                <strong>Entrega no WhatsApp · {delivery.label}</strong>
+                <strong>
+                  {attempt.provider === "fake"
+                    ? "Entrega simulada"
+                    : "Entrega no WhatsApp"}{" "}
+                  · {delivery.label}
+                </strong>
                 <small>
                   {attempt.delivery_status === "not_started"
                     ? "A entrega não foi iniciada porque o envio não foi confirmado."
                     : attempt.delivery_event_at
                       ? `Atualizada em ${formatDateTime(attempt.delivery_event_at)}.`
-                      : "Aguardando uma atualização do WhatsApp."}
+                      : attempt.provider === "fake"
+                        ? "Aguardando o próximo ciclo do simulador."
+                        : "Aguardando uma atualização do WhatsApp."}
                 </small>
               </div>
             </li>
@@ -126,7 +139,12 @@ export function NotificationDetailPage() {
                     attempt.delivery_status === "read"
                   ? "A Meta confirmou a entrega desta mensagem ao destinatário."
                   : "A API da Meta aceitou a mensagem e devolveu um identificador."
-              : "Nenhuma requisição externa foi realizada neste envio."}
+              : deliveryFailed
+                ? "Nenhuma requisição externa foi realizada; o simulador reproduziu uma falha de entrega."
+                : attempt.delivery_status === "delivered" ||
+                    attempt.delivery_status === "read"
+                  ? "Nenhuma requisição externa foi realizada; o simulador confirmou a entrega fictícia."
+                  : "Nenhuma requisição externa foi realizada; o retorno fictício será atualizado pelo worker."}
           </p>
         </div>
         <dl className="provider-audit-facts">
@@ -139,8 +157,8 @@ export function NotificationDetailPage() {
             <dd>{submission.label}</dd>
           </div>
           <div>
-            <dt>{attempt.provider === "fake" ? "Entrega externa" : "Entrega no WhatsApp"}</dt>
-            <dd>{attempt.provider === "fake" ? "Não se aplica" : delivery.label}</dd>
+            <dt>{attempt.provider === "fake" ? "Entrega simulada" : "Entrega no WhatsApp"}</dt>
+            <dd>{delivery.label}</dd>
           </div>
           {httpStatus !== null ? (
             <div><dt>HTTP</dt><dd>{httpStatus}</dd></div>
@@ -153,7 +171,7 @@ export function NotificationDetailPage() {
             <div><dt>Correlação</dt><dd>{correlationId}</dd></div>
           ) : null}
           {attempt.delivery_error_code ? (
-            <div><dt>Código Meta</dt><dd>{attempt.delivery_error_code}</dd></div>
+            <div><dt>{attempt.provider === "fake" ? "Código simulado" : "Código Meta"}</dt><dd>{attempt.delivery_error_code}</dd></div>
           ) : null}
         </dl>
       </section>
@@ -187,6 +205,89 @@ export function NotificationDetailPage() {
         </section>
       ) : null}
 
+      {retryFlow.recovery.data ? (
+        <section className={`surface-card recovery-card recovery-${retryFlow.recovery.data.action}`}>
+          <div>
+            <span className="eyebrow">Próxima ação</span>
+            <h2>
+              {retryFlow.recovery.data.eligible
+                ? "Esta mensagem pode ser reenviada"
+                : retryFlow.recovery.data.action === "template"
+                  ? "Esta falha exige um template aprovado"
+                  : retryFlow.recovery.data.action === "fix"
+                    ? "Corrija os dados antes de reenviar"
+                    : retryFlow.recovery.data.action === "review"
+                      ? "Revise esta falha antes de reenviar"
+                      : "Retentativa indisponível"}
+            </h2>
+            <p>
+              {retryFlow.recovery.data.eligible
+                ? "O reenvio criará uma nova tentativa e preservará todo o histórico atual."
+                : retryFlow.recovery.data.action === "template"
+                  ? retryFlow.recovery.data.template_eligible
+                    ? "Repetir o texto livre provavelmente causaria a mesma falha. O novo envio usará o template configurado e preservará o histórico."
+                    : "Repetir o texto livre provavelmente causaria a mesma falha. Configure um template aprovado para continuar."
+                  : `Motivo técnico: ${retryFlow.recovery.data.reason}.`}
+            </p>
+          </div>
+          {retryFlow.recovery.data.eligible ? (
+            <Button
+              icon={<Icon name="refresh" />}
+              loading={retryFlow.retry.isPending || Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)}
+              onClick={() => retryFlow.retry.mutate()}
+            >
+              Tentar novamente
+            </Button>
+          ) : retryFlow.recovery.data.template_eligible ? (
+            <Button
+              icon={<Icon name="message" />}
+              loading={
+                retryFlow.retryTemplate.isPending ||
+                Boolean(retryFlow.job.data && !retryFlow.job.data.terminal)
+              }
+              onClick={() => retryFlow.retryTemplate.mutate()}
+            >
+              Reenviar com template
+            </Button>
+          ) : null}
+          {retryFlow.retry.error || retryFlow.retryTemplate.error ? (
+            <div className="inline-error" role="alert">
+              {userFacingError(
+                retryFlow.retry.error ?? retryFlow.retryTemplate.error,
+              )}
+            </div>
+          ) : null}
+          {retryFlow.job.data?.terminal ? (
+            <StatusBadge tone={retryFlow.job.data.result?.retried ? "success" : "warning"}>
+              {retryFlow.job.data.result?.retried
+                ? "Nova tentativa criada"
+                : "Retentativa cancelada"}
+            </StatusBadge>
+          ) : null}
+        </section>
+      ) : null}
+
+      {retryFlow.attempts.data && retryFlow.attempts.data.length > 1 ? (
+        <section className="surface-card attempt-family-card">
+          <div className="section-heading">
+            <div><span className="eyebrow">Histórico preservado</span><h2>Tentativas relacionadas</h2></div>
+          </div>
+          <div className="attempt-family-list">
+            {retryFlow.attempts.data.map((item) => {
+              const itemStatus = notificationResultMeta(item);
+              return (
+                <Link key={item.id} to={`/notificacoes/${item.id}`}>
+                  <span>Tentativa {item.attempt_number ?? 1}</span>
+                  <small>{formatDateTime(item.processed_at)}</small>
+                  <StatusBadge tone={itemStatus.tone}>{itemStatus.label}</StatusBadge>
+                  <Icon name="arrow-right" />
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
       <section className="notification-overview-grid">
         <article className="surface-card notification-message-card">
           <div className="section-heading">
@@ -194,6 +295,16 @@ export function NotificationDetailPage() {
           </div>
           <blockquote>{attempt.message}</blockquote>
           <dl className="technical-details">
+            <div>
+              <dt>Formato</dt>
+              <dd>{attempt.message_format === "template" ? "Template configurado" : "Texto livre"}</dd>
+            </div>
+            {attempt.template_info ? (
+              <>
+                <div><dt>Template</dt><dd>{attempt.template_info.name}</dd></div>
+                <div><dt>Idioma</dt><dd>{attempt.template_info.language}</dd></div>
+              </>
+            ) : null}
             <div><dt>Destino</dt><dd>{formatPhone(attempt.destination)}</dd></div>
             <div><dt>Provider utilizado</dt><dd>{notificationProviderLabel[attempt.provider]}</dd></div>
             <div><dt>ID do provider</dt><dd>{attempt.provider_message_id ?? "—"}</dd></div>

@@ -242,6 +242,22 @@ Ao habilitar, o primeiro job é criado no próximo ciclo curto do worker; as exe
 
 O `FakeWhatsAppProvider` usa o mesmo contrato textual planejado para a API da Meta. Ele monta um payload com `messaging_product`, destinatário, tipo e corpo, mas não realiza chamada externa. A resposta simulada contém um identificador `wamid.fake.*`.
 
+O aceite simulado deixa a entrega como `pending`. Nos ciclos seguintes, o
+worker produz eventos fictícios separados, usando os mesmos estados, métricas,
+polling e timeline do fluxo real:
+
+```dotenv
+FAKE_DELIVERY_OUTCOME=delivered
+FAKE_DELIVERY_DELAY_SECONDS=2
+FAKE_DELIVERY_ERROR_CODE=131047
+```
+
+`FAKE_DELIVERY_OUTCOME` aceita `delivered`, `read` ou `failed`. O cenário
+`delivered` percorre `pending → sent → delivered`; `read` acrescenta `read`; e
+`failed` percorre `pending → sent → failed` usando o código configurado. Cada
+transição ocorre em um ciclo diferente do worker e é marcada como simulada na
+auditoria. Nenhuma chamada é feita à Meta nem ao endpoint público de webhook.
+
 As tentativas ficam disponíveis em:
 
 ```text
@@ -251,6 +267,22 @@ GET /charges/{id}/notifications
 ```
 
 Uma chave formada por cobrança, vencimento e tipo de notificação impede o envio repetido. Cobranças não elegíveis aparecem no trace do job, mas não geram `NotificationAttempt`.
+
+Falhas confirmadas e classificadas como retentáveis podem ser avaliadas e
+reenviadas manualmente:
+
+```text
+GET  /notifications/{id}/recovery
+POST /notifications/{id}/retry
+GET  /notifications/{id}/attempts
+```
+
+O reenvio é assíncrono e retorna um job `retry_notification`. O worker revalida
+a cobrança, o cliente e os estados de envio e entrega antes de agir. Resultado
+incerto, mensagem em trânsito, entrega concluída e erro que exige template,
+correção ou análise não liberam o botão **Tentar novamente**. Cada reenvio cria
+uma tentativa numerada, preserva a falha anterior e registra a tentativa de
+origem e o usuário solicitante.
 
 ## Provider Meta
 
@@ -267,6 +299,9 @@ META_GRAPH_API_BASE_URL=https://graph.facebook.com
 META_REQUEST_TIMEOUT_SECONDS=10
 META_WEBHOOK_VERIFY_TOKEN=
 META_APP_SECRET=
+META_TEMPLATE_MODE=retry_only
+META_TEMPLATE_NAME=dueflow_aviso_cobranca_v1
+META_TEMPLATE_LANGUAGE=pt_BR
 ```
 
 `META_GRAPH_API_VERSION` deve ser preenchida explicitamente com a versão
@@ -302,6 +337,24 @@ MESSAGE_PROVIDER=fake
 Mensagens de texto livres dependem de uma conversa aberta na janela permitida
 pela Meta. Para iniciar conversas fora dessa janela, será necessário cadastrar
 e usar um template aprovado compatível com as mensagens do DueFlow.
+
+`META_TEMPLATE_MODE=retry_only` mantém texto livre como caminho normal e
+oferece **Reenviar com template** quando uma falha, como a `131047`, exigir uma
+nova conversa. Depois da demonstração, `META_TEMPLATE_MODE=always` transforma o
+mesmo template no formato padrão dos lembretes, sem alterar as policies ou os
+jobs.
+
+O template esperado possui quatro parâmetros de corpo, nesta ordem:
+
+1. nome do cliente;
+2. descrição da cobrança;
+3. valor em reais;
+4. vencimento em `dd/mm/aaaa`.
+
+O modo fake gera o mesmo payload de template, marca a tentativa como simulada e
+percorre o fluxo assíncrono de entrega. Nome, idioma, parâmetros e conteúdo
+renderizado ficam disponíveis no detalhe da mensagem mesmo quando a submissão
+falha. O envio real permanece pendente até a aprovação do template configurado.
 
 ### Webhook de entrega
 

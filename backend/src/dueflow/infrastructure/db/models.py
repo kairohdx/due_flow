@@ -156,6 +156,23 @@ class NotificationAttempt(Base):
         default=NotificationDeliveryStatus.NOT_STARTED,
         server_default=NotificationDeliveryStatus.NOT_STARTED.value,
     )
+    root_attempt_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("notification_attempts.id", ondelete="RESTRICT"),
+        index=True,
+    )
+    retry_of_attempt_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("notification_attempts.id", ondelete="RESTRICT"),
+        index=True,
+    )
+    retry_requested_by_user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+    )
+    attempt_number: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        server_default="1",
+    )
     delivery_event_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True)
     )
@@ -173,6 +190,17 @@ class NotificationAttempt(Base):
 
     charge: Mapped[Charge] = relationship(back_populates="notification_attempts")
     processing_job: Mapped["ProcessingJob | None"] = relationship()
+    root_attempt: Mapped["NotificationAttempt | None"] = relationship(
+        foreign_keys=[root_attempt_id],
+        remote_side=[id],
+    )
+    retry_of_attempt: Mapped["NotificationAttempt | None"] = relationship(
+        foreign_keys=[retry_of_attempt_id],
+        remote_side=[id],
+    )
+    retry_requested_by: Mapped["User | None"] = relationship(
+        foreign_keys=[retry_requested_by_user_id],
+    )
 
     @property
     def submission_error_info(self) -> dict[str, Any] | None:
@@ -194,6 +222,56 @@ class NotificationAttempt(Base):
             "known": description.known,
             "technical_title": self.submission_error_title,
             "technical_details": self.submission_error_details,
+        }
+
+    @property
+    def message_format(self) -> str:
+        request = (
+            self.provider_response.get("request", {})
+            if isinstance(self.provider_response, dict)
+            else {}
+        )
+        if isinstance(request, dict) and request.get("type"):
+            return str(request["type"])
+        if isinstance(self.trace, dict):
+            return str(self.trace.get("message_format", "text"))
+        return "text"
+
+    @property
+    def template_info(self) -> dict[str, Any] | None:
+        if self.message_format != "template":
+            return None
+        request = (
+            self.provider_response.get("request", {})
+            if isinstance(self.provider_response, dict)
+            else {}
+        )
+        template = request.get("template") if isinstance(request, dict) else None
+        if not isinstance(template, dict):
+            traced = (
+                self.trace.get("template")
+                if isinstance(self.trace, dict)
+                else None
+            )
+            return dict(traced) if isinstance(traced, dict) else None
+        language = template.get("language", {})
+        components = template.get("components", [])
+        parameters: list[str] = []
+        if isinstance(components, list):
+            for component in components:
+                if not isinstance(component, dict):
+                    continue
+                for parameter in component.get("parameters", []):
+                    if isinstance(parameter, dict) and "text" in parameter:
+                        parameters.append(str(parameter["text"]))
+        return {
+            "name": str(template.get("name", "")),
+            "language": (
+                str(language.get("code", ""))
+                if isinstance(language, dict)
+                else ""
+            ),
+            "parameters": parameters,
         }
 
     @property
@@ -240,6 +318,7 @@ class ProcessingJob(TimestampMixin, Base):
             name="processing_job_type",
             native_enum=False,
             values_callable=lambda enum: [item.value for item in enum],
+            create_constraint=True,
         )
     )
     status: Mapped[JobStatus] = mapped_column(
