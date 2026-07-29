@@ -91,6 +91,20 @@ def test_enable_validates_interval(client) -> None:
     assert response.status_code == 422
 
 
+def test_configure_interval_preserves_automation_state(client) -> None:
+    paused = client.put("/automation", json={"interval_seconds": 300})
+    client.post("/automation/enable", json={"interval_seconds": 120})
+    active = client.put("/automation", json={"interval_seconds": 600})
+
+    assert paused.status_code == 200
+    assert paused.json()["enabled"] is False
+    assert paused.json()["interval_seconds"] == 300
+    assert active.status_code == 200
+    assert active.json()["enabled"] is True
+    assert active.json()["interval_seconds"] == 600
+    assert active.json()["next_run_at"] is not None
+
+
 def test_enabled_automation_creates_and_processes_job(
     client,
     database,

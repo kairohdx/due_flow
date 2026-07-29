@@ -98,6 +98,10 @@ class NotificationAttempt(Base):
         ForeignKey("charges.id", ondelete="RESTRICT"),
         index=True,
     )
+    processing_job_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("processing_jobs.id", ondelete="SET NULL"),
+        index=True,
+    )
     notification_type: Mapped[NotificationType] = mapped_column(
         SqlEnum(
             NotificationType,
@@ -137,6 +141,7 @@ class NotificationAttempt(Base):
     )
 
     charge: Mapped[Charge] = relationship(back_populates="notification_attempts")
+    processing_job: Mapped["ProcessingJob | None"] = relationship()
 
 
 class ProcessingJob(TimestampMixin, Base):

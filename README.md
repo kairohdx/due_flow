@@ -42,6 +42,7 @@ POST /auth/login
 POST /auth/refresh
 POST /auth/logout
 GET  /auth/me
+POST /auth/change-password
 ```
 
 O access token dura 15 minutos por padrão. O refresh token fica em cookie `HttpOnly`, é rotacionado a cada renovação e revogado no logout. Em produção, a aplicação recusa o segredo de desenvolvimento e exige `AUTH_COOKIE_SECURE=true`.
@@ -80,6 +81,8 @@ A área de clientes oferece busca, filtro por situação e paginação persistid
 A área de cobranças oferece busca, filtros por situação e vencimento, criação, detalhe e edição. Cobranças pendentes podem ser marcadas como pagas, canceladas ou verificadas imediatamente pelas regras, sempre com confirmação e feedback na interface.
 
 A área **Execuções da automação** concentra o diagnóstico técnico: listagem paginada por estado, origem e tipo, polling rápido enquanto houver trabalho ativo e detalhe com linha do tempo, tentativas, resultados, decisões, traces do PolicyFlow, erros e payload original. Quando a fila fica estável, a atualização desacelera; no detalhe, ela é encerrada ao atingir um estado terminal.
+
+A área **Histórico de mensagens** oferece registros paginados por resultado, canal e tipo de mensagem. O detalhe mostra conteúdo, destino, provider, política, motivo, trace, chave de idempotência, resposta segura do provider e vínculos para cliente, cobrança e execução. Envios simulados, enviados e com falha recebem tratamentos visuais distintos.
 
 Para validar o frontend:
 
@@ -205,6 +208,7 @@ A automação começa pausada. Consulte e controle pelo painel ou API:
 
 ```text
 GET  /automation
+PUT  /automation
 POST /automation/enable
 POST /automation/disable
 ```

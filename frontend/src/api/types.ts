@@ -133,3 +133,26 @@ export interface ChargePayload {
   due_date: string;
   reminder_days_before: number;
 }
+
+export type NotificationStatus = "pending" | "sent" | "failed" | "simulated";
+export type NotificationProvider = "fake" | "meta";
+export type NotificationType = "upcoming" | "due_today" | "overdue";
+
+export interface NotificationAttempt {
+  id: string;
+  charge_id: string;
+  processing_job_id: string | null;
+  notification_type: NotificationType;
+  provider: NotificationProvider;
+  destination: string;
+  message: string;
+  status: NotificationStatus;
+  provider_message_id: string | null;
+  error: string | null;
+  idempotency_key: string;
+  policy_name: string;
+  decision_reason: string;
+  trace: JobTrace | null;
+  provider_response: Record<string, unknown> | null;
+  processed_at: string;
+}

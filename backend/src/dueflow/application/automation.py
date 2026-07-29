@@ -29,3 +29,8 @@ class AutomationService:
     def disable(self) -> AutomationState:
         return self.repository.disable(now=datetime.now(UTC))
 
+    def configure(self, *, interval_seconds: int) -> AutomationState:
+        return self.repository.configure(
+            now=datetime.now(UTC),
+            interval_seconds=interval_seconds,
+        )

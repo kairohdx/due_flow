@@ -49,10 +49,10 @@ class ProcessingJobHandler:
             charge = self.charge_repository.get(charge_id)
             if charge is None:
                 raise ResourceNotFoundError("cobrança não encontrada")
-            evaluations = [self._evaluate(charge, reference_date)]
+            evaluations = [self._evaluate(charge, reference_date, job.id)]
         elif job.type is JobType.PROCESS_DUE_CHARGES:
             evaluations = [
-                self._evaluate(charge, reference_date)
+                self._evaluate(charge, reference_date, job.id)
                 for charge in self.charge_repository.list_pending()
             ]
         else:
@@ -89,7 +89,12 @@ class ProcessingJobHandler:
             "evaluations": evaluations,
         }
 
-    def _evaluate(self, charge: Charge, reference_date: date) -> dict[str, Any]:
+    def _evaluate(
+        self,
+        charge: Charge,
+        reference_date: date,
+        processing_job_id: UUID,
+    ) -> dict[str, Any]:
         customer = self.customer_repository.get(charge.customer_id)
         if customer is None:
             raise ResourceNotFoundError("cliente da cobrança não encontrado")
@@ -101,6 +106,7 @@ class ProcessingJobHandler:
             customer=customer,
             evaluation=evaluation,
             trace=serialized["trace"],
+            processing_job_id=processing_job_id,
         )
         serialized["notification"] = (
             notification.as_dict() if notification is not None else None

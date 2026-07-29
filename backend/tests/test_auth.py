@@ -10,7 +10,8 @@ from dueflow.infrastructure.db.database import Database
 from dueflow.infrastructure.db.models import RefreshSession, User
 
 
-PASSWORD = "correct-horse-battery-staple"
+PASSWORD = "not-a-real-test-password"
+NEW_PASSWORD = "not-a-real-new-password"
 
 
 def create_user(database: Database, settings: Settings, *, active: bool = True) -> User:
@@ -178,7 +179,7 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
     with database.session() as session:
         AuthService(AuthRepository(session), settings).reset_password(
             email=" OWNER@EXAMPLE.COM ",
-            password="new-secure-password-456",
+            password=NEW_PASSWORD,
         )
 
     old_password = unauthenticated_client.post(
@@ -189,7 +190,7 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
         "/auth/login",
         json={
             "email": "owner@example.com",
-            "password": "new-secure-password-456",
+            "password": NEW_PASSWORD,
         },
     )
     revoked_access = unauthenticated_client.get(
@@ -200,3 +201,45 @@ def test_reset_password_rejects_old_password_and_revokes_sessions(
     assert old_password.status_code == 401
     assert new_password.status_code == 200
     assert revoked_access.status_code == 401
+
+
+def test_authenticated_user_changes_password_and_sessions_are_revoked(
+    unauthenticated_client: TestClient,
+    database: Database,
+    settings: Settings,
+) -> None:
+    create_user(database, settings)
+    login = unauthenticated_client.post(
+        "/auth/login",
+        json={"email": "owner@example.com", "password": PASSWORD},
+    )
+    access_token = login.json()["access_token"]
+
+    changed = unauthenticated_client.post(
+        "/auth/change-password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "current_password": PASSWORD,
+            "new_password": NEW_PASSWORD,
+        },
+    )
+
+    assert changed.status_code == 204
+    assert settings.auth_refresh_cookie_name not in unauthenticated_client.cookies
+    assert (
+        unauthenticated_client.get(
+            "/auth/me",
+            headers={"Authorization": f"Bearer {access_token}"},
+        ).status_code
+        == 401
+    )
+    assert (
+        unauthenticated_client.post(
+            "/auth/login",
+            json={
+                "email": "owner@example.com",
+                "password": NEW_PASSWORD,
+            },
+        ).status_code
+        == 200
+    )

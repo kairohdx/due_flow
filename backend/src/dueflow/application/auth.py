@@ -87,6 +87,22 @@ class AuthService:
             revoked_at=datetime.now(timezone.utc),
         )
 
+    def change_password(
+        self,
+        user: User,
+        *,
+        current_password: str,
+        new_password: str,
+    ) -> User:
+        if not self._verify_password(user.password_hash, current_password):
+            raise AuthenticationError("senha atual inválida")
+        self._validate_password(new_password)
+        return self.repository.update_password_and_revoke_sessions(
+            user,
+            password_hash=self.password_hasher.hash(new_password),
+            revoked_at=datetime.now(timezone.utc),
+        )
+
     def refresh(self, raw_token: str) -> tuple[User, TokenPair]:
         current = self._validate_refresh_token(raw_token)
         user = current.user
