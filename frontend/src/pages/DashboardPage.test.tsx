@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { markAuthInitialized, setAuthSession } from "../auth/authStore";
 import type { Job } from "../api/types";
 import * as dashboardApi from "../api/dashboard";
@@ -49,6 +50,9 @@ function configureApi() {
     window_started_at: "2026-07-28T12:00:00Z",
     customers_total: 18,
     charges_pending: 9,
+    charges_overdue: 3,
+    charges_due_today: 2,
+    charges_due_next_7_days: 4,
     charges_evaluated_last_24h: 27,
     notifications_processed_last_24h: 12,
     notification_failures_last_24h: 1,
@@ -102,7 +106,9 @@ function renderDashboard() {
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <DashboardPage />
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -118,10 +124,14 @@ it("apresenta métricas, automação e atividade recente", async () => {
   expect(await screen.findByText("18")).toBeInTheDocument();
   expect(screen.getByText("Clientes cadastrados")).toBeInTheDocument();
   expect(screen.getByText("Cobranças pendentes")).toBeInTheDocument();
-  expect(screen.getByText("Cobranças avaliadas")).toBeInTheDocument();
-  expect(screen.getByText("Mensagens processadas")).toBeInTheDocument();
-  expect(screen.queryByText("Na fila")).not.toBeInTheDocument();
-  expect(screen.getByText("Processamento manual")).toBeInTheDocument();
+  expect(screen.getAllByText("Cobranças vencidas")).toHaveLength(2);
+  expect(screen.getAllByText("Vencem hoje")).toHaveLength(2);
+  expect(screen.getByText("Vencem em até 7 dias")).toBeInTheDocument();
+  expect(screen.getByText("Lembretes enviados")).toBeInTheDocument();
+  expect(screen.getByText("Falhas no envio")).toBeInTheDocument();
+  expect(screen.getByText("Atenção necessária")).toBeInTheDocument();
+  expect(screen.queryByText("Retries")).not.toBeInTheDocument();
+  expect(screen.queryByText("Processamento manual")).not.toBeInTheDocument();
   expect(screen.getByText("Pausada")).toBeInTheDocument();
 });
 
@@ -135,13 +145,13 @@ it("habilita a automação pela tela", async () => {
   expect(await screen.findByText("Ativa")).toBeInTheDocument();
 });
 
-it("acompanha o job manual até o estado terminal", async () => {
+it("acompanha a verificação manual até o estado terminal", async () => {
   const user = userEvent.setup();
   renderDashboard();
 
-  await user.click(await screen.findByRole("button", { name: "Processar agora" }));
+  await user.click(await screen.findByRole("button", { name: "Verificar agora" }));
 
   expect(dashboardApi.enqueueProcessing).toHaveBeenCalledOnce();
-  expect(await screen.findByText("Processamento concluído")).toBeInTheDocument();
-  expect(screen.getByText(/3 cobranças avaliadas/)).toBeInTheDocument();
+  expect(await screen.findByText("Verificação concluída")).toBeInTheDocument();
+  expect(screen.getByText(/2 mensagem\(ns\) enviada\(s\)/)).toBeInTheDocument();
 });

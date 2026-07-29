@@ -10,7 +10,7 @@ const navItems: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "Visão geral", icon: "dashboard" },
   { to: "/clientes", label: "Clientes", icon: "users" },
   { to: "/cobrancas", label: "Cobranças", icon: "credit-card" },
-  { to: "/fila", label: "Fila de jobs", icon: "activity" },
+  { to: "/fila", label: "Execuções da automação", icon: "activity" },
   { to: "/notificacoes", label: "Notificações", icon: "bell" },
 ];
 
@@ -18,7 +18,7 @@ const routeTitles: Record<string, string> = {
   "/": "Visão geral",
   "/clientes": "Clientes",
   "/cobrancas": "Cobranças",
-  "/fila": "Fila de jobs",
+  "/fila": "Execuções da automação",
   "/notificacoes": "Notificações",
 };
 

@@ -67,8 +67,8 @@ export function ChargeDetailPage() {
           setAction(null);
           setFeedback(
             job.created
-              ? `Processamento enfileirado. Job ${job.job_id.slice(0, 8)} criado.`
-              : `Esta cobrança já está na fila. Job ${job.job_id.slice(0, 8)} mantido.`,
+              ? "Verificação adicionada à fila."
+              : "Esta cobrança já está aguardando verificação.",
           );
         },
       });
@@ -84,14 +84,14 @@ export function ChargeDetailPage() {
     },
     cancel: {
       title: "Cancelar esta cobrança?",
-      description: "A cobrança cancelada não poderá ser marcada como paga ou processada.",
+      description: "A cobrança cancelada não poderá ser marcada como paga ou verificada.",
       confirmLabel: "Cancelar cobrança",
       danger: true,
     },
     process: {
-      title: "Processar cobrança agora?",
-      description: "Um job será criado na fila e executado de forma assíncrona pelo worker.",
-      confirmLabel: "Enviar para a fila",
+      title: "Verificar cobrança agora?",
+      description: "A cobrança será avaliada e uma mensagem será enviada somente se as regras permitirem.",
+      confirmLabel: "Adicionar à fila",
       danger: false,
     },
   };
@@ -113,7 +113,7 @@ export function ChargeDetailPage() {
                 Editar
               </Button>
               <Button icon={<Icon name="play" />} onClick={() => setAction("process")}>
-                Processar
+                Verificar agora
               </Button>
             </div>
           ) : null
@@ -180,7 +180,7 @@ export function ChargeDetailPage() {
               <div>
                 <span className="eyebrow">Resolver cobrança</span>
                 <h2>Ações operacionais</h2>
-                <p>Confirme o pagamento ou cancele uma cobrança que não deve mais ser processada.</p>
+                <p>Confirme o pagamento ou cancele uma cobrança que não deve mais receber lembretes.</p>
               </div>
               <div className="page-actions">
                 <Button variant="secondary" icon={<Icon name="check" />} onClick={() => setAction("paid")}>

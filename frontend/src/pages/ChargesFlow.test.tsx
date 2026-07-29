@@ -144,7 +144,7 @@ it("cadastra uma cobrança e navega para o detalhe", async () => {
   expect(await screen.findByText("Detalhe criado")).toBeInTheDocument();
 });
 
-it("confirma o processamento assíncrono e o pagamento", async () => {
+it("confirma a verificação assíncrona e o pagamento", async () => {
   const user = userEvent.setup();
   wrapper(
     "/cobrancas/charge-1",
@@ -152,10 +152,10 @@ it("confirma o processamento assíncrono e o pagamento", async () => {
   );
 
   expect(await screen.findByText("Padaria Pão Dourado")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Processar" }));
+  await user.click(screen.getByRole("button", { name: "Verificar agora" }));
   expect(screen.getByRole("dialog")).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Enviar para a fila" }));
-  expect(await screen.findByText(/Processamento enfileirado/)).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Adicionar à fila" }));
+  expect(await screen.findByText("Verificação adicionada à fila.")).toBeInTheDocument();
   expect(chargesApi.processCharge).toHaveBeenCalledWith("charge-1");
 
   await user.click(screen.getByRole("button", { name: "Marcar como paga" }));

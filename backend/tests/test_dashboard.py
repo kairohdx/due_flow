@@ -73,11 +73,25 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         "/charges",
         json={
             "customer_id": customer["id"],
-            "description": "Cobrança pendente",
+            "description": "Cobrança vencendo hoje",
             "amount": "50.00",
-            "due_date": "2026-07-29",
+            "due_date": now.date().isoformat(),
         },
     ).json()
+    for description, due_date in (
+        ("Cobrança vencida", now.date() - timedelta(days=1)),
+        ("Cobrança vencendo em breve", now.date() + timedelta(days=5)),
+    ):
+        created = client.post(
+            "/charges",
+            json={
+                "customer_id": customer["id"],
+                "description": description,
+                "amount": "50.00",
+                "due_date": due_date.isoformat(),
+            },
+        )
+        assert created.status_code == 201
     with database.session() as session:
         for index, status in enumerate(
             [
@@ -110,6 +124,9 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         for key in (
             "customers_total",
             "charges_pending",
+            "charges_overdue",
+            "charges_due_today",
+            "charges_due_next_7_days",
             "charges_evaluated_last_24h",
             "notifications_processed_last_24h",
             "notification_failures_last_24h",
@@ -121,7 +138,10 @@ def test_dashboard_summary_reports_queue_and_last_24_hours(
         )
     } == {
         "customers_total": 1,
-        "charges_pending": 1,
+        "charges_pending": 3,
+        "charges_overdue": 1,
+        "charges_due_today": 1,
+        "charges_due_next_7_days": 1,
         "charges_evaluated_last_24h": 7,
         "notifications_processed_last_24h": 1,
         "notification_failures_last_24h": 1,

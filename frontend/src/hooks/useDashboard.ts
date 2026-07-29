@@ -7,7 +7,6 @@ import {
   getAutomation,
   getDashboardSummary,
   getJob,
-  getRecentJobs,
 } from "../api/dashboard";
 
 const DASHBOARD_POLLING_MS = 10_000;
@@ -28,14 +27,6 @@ export function useDashboard() {
   const automation = useQuery({
     queryKey: ["automation"],
     queryFn: getAutomation,
-    refetchInterval: DASHBOARD_POLLING_MS,
-    refetchIntervalInBackground: false,
-    placeholderData: (previous) => previous,
-  });
-
-  const recentJobs = useQuery({
-    queryKey: ["processing-jobs", "recent"],
-    queryFn: getRecentJobs,
     refetchInterval: DASHBOARD_POLLING_MS,
     refetchIntervalInBackground: false,
     placeholderData: (previous) => previous,
@@ -89,7 +80,6 @@ export function useDashboard() {
   return {
     summary,
     automation,
-    recentJobs,
     trackedJob,
     enable,
     disable,

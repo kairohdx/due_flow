@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import type { DashboardSummary } from "../api/dashboard";
 import { useAuthState } from "../auth/authStore";
 import type { Job, JobStatus } from "../api/types";
 import { userFacingError } from "../api/errors";
@@ -11,7 +13,6 @@ import { StatusBadge, type BadgeTone } from "../components/ui/StatusBadge";
 import { useDashboard } from "../hooks/useDashboard";
 import {
   formatDateTime,
-  formatDuration,
   formatInterval,
   formatTime,
 } from "../lib/format";
@@ -20,8 +21,8 @@ const statusMeta: Record<
   JobStatus,
   { label: string; tone: BadgeTone; icon: IconName }
 > = {
-  queued: { label: "Na fila", tone: "warning", icon: "clock" },
-  processing: { label: "Processando", tone: "info", icon: "activity" },
+  queued: { label: "Aguardando", tone: "warning", icon: "clock" },
+  processing: { label: "Verificando", tone: "info", icon: "activity" },
   completed: { label: "Concluído", tone: "success", icon: "check" },
   failed: { label: "Falhou", tone: "danger", icon: "x" },
 };
@@ -87,7 +88,7 @@ function AutomationCard({
           <p className="automation-description">
             {state.enabled
               ? `O DueFlow verifica novas cobranças a cada ${formatInterval(state.interval_seconds)}.`
-              : "Ative para que o worker crie jobs automaticamente no intervalo configurado."}
+              : "Ative para verificar cobranças e enviar lembretes automaticamente."}
           </p>
           <dl className="automation-details">
             <div><dt>Intervalo</dt><dd>{formatInterval(state.interval_seconds)}</dd></div>
@@ -113,60 +114,64 @@ function AutomationCard({
   );
 }
 
-function RecentActivity({
-  jobs,
-  loading,
-  error,
-}: {
-  jobs: Job[] | undefined;
-  loading: boolean;
-  error: unknown;
-}) {
+function AttentionCard({ summary }: { summary: DashboardSummary }) {
+  const attentionTotal =
+    summary.charges_overdue +
+    summary.charges_due_today +
+    summary.notification_failures_last_24h;
+  const items = [
+    {
+      label: "Cobranças vencidas",
+      value: summary.charges_overdue,
+      hint: "Aguardando resolução",
+      icon: "bell" as const,
+      tone: "danger",
+      to: "/cobrancas?status=pending",
+    },
+    {
+      label: "Vencem hoje",
+      value: summary.charges_due_today,
+      hint: "Prazo termina hoje",
+      icon: "calendar" as const,
+      tone: "warning",
+      to: "/cobrancas?status=pending",
+    },
+    {
+      label: "Falhas no envio",
+      value: summary.notification_failures_last_24h,
+      hint: "Ocorridas nas últimas 24h",
+      icon: "x" as const,
+      tone: "danger",
+      to: "/notificacoes",
+    },
+  ];
+
   return (
-    <section className="surface-card activity-card">
+    <section className="surface-card attention-card">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Últimos eventos</span>
-          <h2>Atividade recente</h2>
+          <span className="eyebrow">Prioridades</span>
+          <h2>Atenção necessária</h2>
         </div>
-        <span className="section-caption">Atualização automática</span>
+        <StatusBadge tone={attentionTotal > 0 ? "warning" : "success"}>
+          {attentionTotal > 0 ? `${attentionTotal} pendência(s)` : "Tudo em ordem"}
+        </StatusBadge>
       </div>
-      {error && !jobs ? <ErrorState error={error} /> : null}
-      {loading && !jobs ? <Skeleton lines={5} /> : null}
-      {jobs?.length === 0 ? (
-        <div className="activity-empty">
-          <Icon name="activity" />
-          <div><strong>Nenhum job por enquanto</strong><span>Processe agora ou ative a automação.</span></div>
-        </div>
-      ) : null}
-      {jobs?.length ? (
-        <div className="activity-list">
-          {jobs.map((job) => {
-            const meta = statusMeta[job.status];
-            return (
-              <article className="activity-row" key={job.id}>
-                <span className={`activity-icon activity-${job.status}`}>
-                  <Icon name={meta.icon} />
-                </span>
-                <div className="activity-copy">
-                  <strong>
-                    {job.origin === "automatic" ? "Processamento automático" : "Processamento manual"}
-                  </strong>
-                  <span>
-                    {job.result
-                      ? `${job.result.evaluated} avaliadas · ${job.result.simulated} simuladas`
-                      : `Tentativa ${job.attempts} de ${job.max_attempts}`}
-                  </span>
-                </div>
-                <div className="activity-meta">
-                  <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
-                  <small>{formatTime(job.created_at)} · {formatDuration(job.duration_ms)}</small>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : null}
+      <div className="attention-list">
+        {items.map((item) => (
+          <Link className="attention-row" key={item.label} to={item.to}>
+            <span className={`attention-icon attention-${item.tone}`}>
+              <Icon name={item.icon} />
+            </span>
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.hint}</small>
+            </span>
+            <b>{item.value.toLocaleString("pt-BR")}</b>
+            <Icon name="arrow-right" />
+          </Link>
+        ))}
+      </div>
     </section>
   );
 }
@@ -188,19 +193,21 @@ function ProcessBanner({
       <div>
         <strong>
           {error
-            ? "Não foi possível iniciar o processamento"
+            ? "Não foi possível iniciar a verificação"
             : job?.terminal
               ? job.status === "completed"
-                ? "Processamento concluído"
-                : "Processamento encerrado com falha"
-              : "Processamento enviado para a fila"}
+                ? "Verificação concluída"
+                : "Verificação encerrada com falha"
+              : "Verificação adicionada à fila"}
         </strong>
         <span>
           {error
             ? userFacingError(error)
             : job?.result
-              ? `${job.result.evaluated} cobranças avaliadas e ${job.result.simulated} mensagens simuladas.`
-              : "Acompanhando o status automaticamente, sem recarregar a página."}
+              ? job.result.simulated > 0
+                ? `${job.result.simulated} mensagem(ns) enviada(s) nesta verificação.`
+                : "Nenhuma mensagem precisou ser enviada nesta verificação."
+              : "O resultado será atualizado automaticamente."}
         </span>
       </div>
       {!error ? <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge> : null}
@@ -230,7 +237,7 @@ export function DashboardPage() {
         loading={dashboard.processNow.isPending}
         onClick={() => dashboard.processNow.mutate()}
       >
-        Processar agora
+        Verificar agora
       </Button>
     </>
   );
@@ -238,9 +245,9 @@ export function DashboardPage() {
   return (
     <div className="page-stack dashboard-page">
       <PageHeader
-        eyebrow="Operação em tempo real"
+        eyebrow="Resumo do negócio"
         title={`Olá, ${firstName}.`}
-        description="Acompanhe a automação e o trabalho da fila sem precisar atualizar a página."
+        description="Acompanhe cobranças, vencimentos e lembretes em uma visão simples."
         actions={headerAction}
       />
 
@@ -272,15 +279,15 @@ export function DashboardPage() {
           <section className="metrics-grid">
             <MetricCard label="Clientes cadastrados" value={summary.customers_total} hint="Base total" icon="users" />
             <MetricCard label="Cobranças pendentes" value={summary.charges_pending} hint="Aguardando resolução" icon="credit-card" tone="amber" />
-            <MetricCard label="Cobranças avaliadas" value={summary.charges_evaluated_last_24h} hint="Últimas 24 horas" icon="activity" tone="blue" active={summary.jobs_processing > 0} />
-            <MetricCard label="Mensagens processadas" value={summary.notifications_processed_last_24h} hint="Enviadas ou simuladas em 24h" icon="check" tone="teal" />
-            <MetricCard label="Retries" value={summary.job_retries_last_24h} hint="Últimas 24 horas" icon="refresh" tone="amber" />
-            <MetricCard label="Falhas de notificação" value={summary.notification_failures_last_24h} hint="Últimas 24 horas" icon="x" tone="red" />
+            <MetricCard label="Cobranças vencidas" value={summary.charges_overdue} hint="Precisam de atenção" icon="bell" tone="red" />
+            <MetricCard label="Vencem hoje" value={summary.charges_due_today} hint="Prazo de hoje" icon="calendar" tone="amber" />
+            <MetricCard label="Vencem em até 7 dias" value={summary.charges_due_next_7_days} hint="Próximos vencimentos" icon="clock" tone="blue" />
+            <MetricCard label="Lembretes enviados" value={summary.notifications_processed_last_24h} hint="Últimas 24 horas" icon="check" tone="teal" />
           </section>
         </>
       )}
 
-      <section className="dashboard-lower-grid">
+      <section className="dashboard-business-lower">
         <AutomationCard
           state={dashboard.automation.data}
           loading={automationMutationPending}
@@ -292,11 +299,7 @@ export function DashboardPage() {
           onEnable={() => dashboard.enable.mutate()}
           onDisable={() => dashboard.disable.mutate()}
         />
-        <RecentActivity
-          jobs={dashboard.recentJobs.data?.items}
-          loading={dashboard.recentJobs.isLoading}
-          error={dashboard.recentJobs.error}
-        />
+        {summary ? <AttentionCard summary={summary} /> : <Skeleton lines={6} />}
       </section>
     </div>
   );

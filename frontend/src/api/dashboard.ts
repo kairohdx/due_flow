@@ -6,6 +6,9 @@ export interface DashboardSummary {
   window_started_at: string;
   customers_total: number;
   charges_pending: number;
+  charges_overdue: number;
+  charges_due_today: number;
+  charges_due_next_7_days: number;
   charges_evaluated_last_24h: number;
   notifications_processed_last_24h: number;
   notification_failures_last_24h: number;

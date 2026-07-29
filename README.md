@@ -73,11 +73,11 @@ npm.cmd run dev
 
 O painel fica disponível em `http://localhost:5173`. A fundação inclui login, restauração da sessão por refresh token, renovação coordenada após `401`, rotas privadas, shell responsivo e componentes visuais reutilizáveis.
 
-A tela inicial já funciona como dashboard operacional: consulta as métricas a cada 10 segundos, controla a automação, dispara processamento manual e acompanha o job criado a cada 2 segundos até sua conclusão ou falha. O polling pausa quando a aba não está visível e é atualizado ao voltar ao foco.
+A tela inicial apresenta uma visão de negócio: clientes, cobranças pendentes, vencidas, vencendo hoje, próximos vencimentos, lembretes enviados e falhas que precisam de atenção. Ela consulta as métricas a cada 10 segundos, controla a automação e permite solicitar uma verificação manual sem expor jobs ou identificadores técnicos.
 
 A área de clientes oferece busca, filtro por situação e paginação persistidos na URL, além de criação, detalhe, edição e consulta das cobranças relacionadas.
 
-A área de cobranças oferece busca, filtros por situação e vencimento, criação, detalhe e edição. Cobranças pendentes podem ser marcadas como pagas, canceladas ou enviadas para processamento assíncrono, sempre com confirmação e feedback na interface.
+A área de cobranças oferece busca, filtros por situação e vencimento, criação, detalhe e edição. Cobranças pendentes podem ser marcadas como pagas, canceladas ou verificadas imediatamente pelas regras, sempre com confirmação e feedback na interface.
 
 Para validar o frontend:
 
@@ -240,7 +240,7 @@ GET /charges/{id}/notifications
 
 Uma chave formada por cobrança, vencimento e tipo de notificação impede o envio repetido. Cobranças não elegíveis aparecem no trace do job, mas não geram `NotificationAttempt`.
 
-## Dashboard operacional
+## Visão geral e diagnóstico operacional
 
 O resumo destinado ao polling da tela inicial está disponível em:
 
@@ -248,7 +248,7 @@ O resumo destinado ao polling da tela inicial está disponível em:
 GET /dashboard/summary
 ```
 
-A resposta informa clientes cadastrados, cobranças pendentes, cobranças avaliadas, mensagens processadas, retries e falhas de notificação na janela móvel das últimas 24 horas. As contagens técnicas de jobs continuam disponíveis para diagnóstico, mas não são apresentadas como volume de cobranças. `generated_at` e `window_started_at` deixam o período explícito para a interface.
+A resposta informa clientes cadastrados, cobranças pendentes, vencidas, vencendo hoje, vencendo nos próximos sete dias e lembretes processados nas últimas 24 horas. O contrato mantém contagens técnicas de execuções, avaliações, retries e falhas para a área avançada **Execuções da automação**, mas a Visão geral não apresenta esses dados como indicadores de negócio. `generated_at` e `window_started_at` deixam a janela móvel explícita.
 
 ## Idioma da documentação
 
